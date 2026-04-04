@@ -1,4 +1,7 @@
-import { BookOpen, CheckSquare, Clock, KanbanSquare, DollarSign, Search, FolderOpen, GraduationCap, BarChart3 } from "lucide-react";
+import {
+  BarChart3, Clock, BookOpen, ListChecks, GraduationCap, Users,
+  CalendarDays, DollarSign, Search, FolderOpen, Settings
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,22 +14,35 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-export type SectionId = "overview" | "courses" | "tasks" | "exams" | "study" | "kanban" | "expenses" | "research" | "resources";
+export type SectionId =
+  | "dashboard"
+  | "study-tracker"
+  | "courses"
+  | "requirements"
+  | "exams"
+  | "group-projects"
+  | "class-schedule"
+  | "expenses"
+  | "research"
+  | "resources"
+  | "settings";
 
 const items: { id: SectionId; title: string; icon: React.ElementType }[] = [
-  { id: "overview", title: "Overview", icon: BarChart3 },
+  { id: "dashboard", title: "Dashboard", icon: BarChart3 },
+  { id: "study-tracker", title: "Study Tracker", icon: Clock },
   { id: "courses", title: "Courses", icon: BookOpen },
-  { id: "tasks", title: "Tasks", icon: CheckSquare },
+  { id: "requirements", title: "Requirements", icon: ListChecks },
   { id: "exams", title: "Exams", icon: GraduationCap },
-  { id: "study", title: "Study Sessions", icon: Clock },
-  { id: "kanban", title: "Kanban Board", icon: KanbanSquare },
-  { id: "expenses", title: "Expenses", icon: DollarSign },
-  { id: "research", title: "Research", icon: Search },
-  { id: "resources", title: "Resources", icon: FolderOpen },
+  { id: "group-projects", title: "Group Projects", icon: Users },
+  { id: "class-schedule", title: "Class Schedule", icon: CalendarDays },
+  { id: "expenses", title: "Expense Tracker", icon: DollarSign },
+  { id: "research", title: "Research Organizer", icon: Search },
+  { id: "resources", title: "Resource Hub", icon: FolderOpen },
+  { id: "settings", title: "Settings", icon: Settings },
 ];
 
 interface AppSidebarProps {
-  activeSection: SectionId | null;
+  activeSection: SectionId;
   onSectionClick: (id: SectionId) => void;
 }
 
@@ -39,7 +55,7 @@ export function AppSidebar({ activeSection, onSectionClick }: AppSidebarProps) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="font-display tracking-tight">
-            {!collapsed && "Modules"}
+            {!collapsed && "Studo"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -48,7 +64,9 @@ export function AppSidebar({ activeSection, onSectionClick }: AppSidebarProps) {
                   <SidebarMenuButton
                     onClick={() => onSectionClick(item.id)}
                     className={`cursor-pointer transition-colors ${
-                      activeSection === item.id ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted/50"
+                      activeSection === item.id
+                        ? "bg-accent text-accent-foreground font-medium"
+                        : "hover:bg-muted/50"
                     }`}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
