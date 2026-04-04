@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { demoResearchSources, ResearchSource } from "@/lib/demoData";
+import { useData } from "@/lib/dataContext";
+import { ResearchSource } from "@/lib/demoData";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,24 +18,24 @@ const fields: FieldConfig[] = [
 ];
 
 const ResearchModule = () => {
-  const [sources, setSources] = useState<ResearchSource[]>(demoResearchSources);
+  const { researchSources, setResearchSources } = useData();
   const [selected, setSelected] = useState<ResearchSource | null>(null);
 
   const update = (key: string, value: any) => {
     if (!selected) return;
     const updated = { ...selected, [key]: value };
     setSelected(updated);
-    setSources((ss) => ss.map((s) => (s.id === updated.id ? updated : s)));
+    setResearchSources((ss) => ss.map((s) => (s.id === updated.id ? updated : s)));
   };
 
   const add = () => {
     const s: ResearchSource = { id: `r${Date.now()}`, title: "", author: "", type: "", url: "", notes: "" };
-    setSources((ss) => [...ss, s]);
+    setResearchSources((ss) => [s, ...ss]);
     setSelected(s);
   };
 
   const remove = (id: string) => {
-    setSources((ss) => ss.filter((s) => s.id !== id));
+    setResearchSources((ss) => ss.filter((s) => s.id !== id));
     if (selected?.id === id) setSelected(null);
   };
 
@@ -47,7 +48,7 @@ const ResearchModule = () => {
         </Button>
       </div>
       <div className="grid gap-2">
-        {sources.map((r) => (
+        {[...researchSources].reverse().map((r) => (
           <Card
             key={r.id}
             className="p-3 cursor-pointer hover:ring-1 hover:ring-ring/20 transition-all group flex items-center justify-between"

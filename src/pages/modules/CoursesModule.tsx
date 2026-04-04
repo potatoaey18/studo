@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { demoCourses, Course } from "@/lib/demoData";
+import { useData } from "@/lib/dataContext";
+import { Course } from "@/lib/demoData";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
@@ -13,7 +14,7 @@ const fields: FieldConfig[] = [
 ];
 
 const CoursesModule = () => {
-  const [courses, setCourses] = useState<Course[]>(demoCourses);
+  const { courses, setCourses } = useData();
   const [selected, setSelected] = useState<Course | null>(null);
 
   const update = (key: string, value: any) => {
@@ -25,7 +26,7 @@ const CoursesModule = () => {
 
   const add = () => {
     const c: Course = { id: `c${Date.now()}`, name: "", code: "", professor: "", schedule: "", color: "bg-secondary" };
-    setCourses((cs) => [...cs, c]);
+    setCourses((cs) => [c, ...cs]);
     setSelected(c);
   };
 

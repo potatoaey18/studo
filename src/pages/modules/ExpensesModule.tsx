@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { demoExpenses, Expense } from "@/lib/demoData";
+import { useData } from "@/lib/dataContext";
+import { Expense } from "@/lib/demoData";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
@@ -15,7 +16,7 @@ const fields: FieldConfig[] = [
 ];
 
 const ExpensesModule = () => {
-  const [expenses, setExpenses] = useState<Expense[]>(demoExpenses);
+  const { expenses, setExpenses } = useData();
   const [selected, setSelected] = useState<Expense | null>(null);
 
   const update = (key: string, value: any) => {
@@ -27,7 +28,7 @@ const ExpensesModule = () => {
 
   const add = () => {
     const e: Expense = { id: `x${Date.now()}`, description: "", amount: 0, category: "", date: new Date().toISOString().split("T")[0] };
-    setExpenses((es) => [...es, e]);
+    setExpenses((es) => [e, ...es]);
     setSelected(e);
   };
 
@@ -37,6 +38,7 @@ const ExpensesModule = () => {
   };
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
   return (
     <div className="space-y-4">
@@ -50,7 +52,7 @@ const ExpensesModule = () => {
         </Button>
       </div>
       <div className="grid gap-2">
-        {expenses.map((e) => (
+        {sorted.map((e) => (
           <Card
             key={e.id}
             className="p-3 cursor-pointer hover:ring-1 hover:ring-ring/20 transition-all group flex items-center justify-between"
