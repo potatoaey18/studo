@@ -17,7 +17,7 @@ const SettingsModule = () => {
           </div>
           <Switch
             checked={theme === "dark"}
-            onCheckedChange={(v) => setTheme(v ? "dark" : "light")}
+            onCheckedChange={() => toggleTheme()}
           />
         </div>
         <div className="flex items-center justify-between">
