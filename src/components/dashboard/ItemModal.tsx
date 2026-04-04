@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,7 @@ interface ItemModalProps<T extends Record<string, any>> {
   item: T | null;
   fields: FieldConfig[];
   onUpdate: (key: string, value: any) => void;
+  extraContent?: ReactNode;
 }
 
 function ItemModal<T extends Record<string, any>>({
@@ -28,6 +30,7 @@ function ItemModal<T extends Record<string, any>>({
   item,
   fields,
   onUpdate,
+  extraContent,
 }: ItemModalProps<T>) {
   if (!item) return null;
 
@@ -39,6 +42,7 @@ function ItemModal<T extends Record<string, any>>({
           <DialogDescription>Edit details below. Changes save automatically.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
+          {extraContent}
           {fields.map((f) => (
             <div key={f.key} className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{f.label}</Label>
