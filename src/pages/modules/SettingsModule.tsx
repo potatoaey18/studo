@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/lib/theme";
 
 const SettingsModule = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="space-y-4">
