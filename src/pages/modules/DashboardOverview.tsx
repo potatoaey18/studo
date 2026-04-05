@@ -41,7 +41,7 @@ const DashboardOverview = () => {
         </Card>
         <Card className="p-5 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setAnalyticsType("expense")}>
           <p className="text-xs text-muted-foreground">Total Expenses</p>
-          <p className="font-display text-2xl font-bold mt-1">${totalExpenses.toFixed(0)}</p>
+          <p className="font-display text-2xl font-bold mt-1">PHP{totalExpenses.toFixed(0)}</p>
           <p className="text-xs text-muted-foreground mt-1">Click to view distribution →</p>
         </Card>
       </div>
