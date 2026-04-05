@@ -109,61 +109,117 @@ export function DataProvider({ children }: { children: ReactNode }) {
     load();
   }, []);
 
-  // Realtime kanban sync
   useEffect(() => {
-    const channel = supabase
-      .channel("realtime-all")
-      .on("postgres_changes", { event: "*", schema: "public", table: "kanban_tasks" }, (payload) => {
-        if (payload.eventType === "INSERT") {
-          setKanbanTasks((ts) => {
-            // Only add if it doesn't already exist (avoid duplicate from optimistic update)
-            if (ts.find((t) => t.id === payload.new.id)) return ts;
-            return [...ts, mapKanban(payload.new)];
-          });
-        } else if (payload.eventType === "UPDATE") {
-          setKanbanTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapKanban(payload.new) : t));
-        } else if (payload.eventType === "DELETE") {
-          setKanbanTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-        }
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, (payload) => {
-        if (payload.eventType === "INSERT") setTasks((ts) => [...ts, mapTask(payload.new)]);
-        else if (payload.eventType === "UPDATE") setTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapTask(payload.new) : t));
-        else if (payload.eventType === "DELETE") setTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, (payload) => {
-        if (payload.eventType === "INSERT") setExpenses((ts) => [...ts, mapExpense(payload.new)]);
-        else if (payload.eventType === "UPDATE") setExpenses((ts) => ts.map((t) => t.id === payload.new.id ? mapExpense(payload.new) : t));
-        else if (payload.eventType === "DELETE") setExpenses((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "courses" }, (payload) => {
-        if (payload.eventType === "INSERT") setCourses((ts) => [...ts, mapCourse(payload.new)]);
-        else if (payload.eventType === "UPDATE") setCourses((ts) => ts.map((t) => t.id === payload.new.id ? mapCourse(payload.new) : t));
-        else if (payload.eventType === "DELETE") setCourses((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "study_sessions" }, (payload) => {
-        if (payload.eventType === "INSERT") setSessions((ts) => [...ts, mapSession(payload.new)]);
-        else if (payload.eventType === "UPDATE") setSessions((ts) => ts.map((t) => t.id === payload.new.id ? mapSession(payload.new) : t));
-        else if (payload.eventType === "DELETE") setSessions((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "exams" }, (payload) => {
-        if (payload.eventType === "INSERT") setExams((ts) => [...ts, mapExam(payload.new)]);
-        else if (payload.eventType === "UPDATE") setExams((ts) => ts.map((t) => t.id === payload.new.id ? mapExam(payload.new) : t));
-        else if (payload.eventType === "DELETE") setExams((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "resources" }, (payload) => {
-        if (payload.eventType === "INSERT") setResources((ts) => [...ts, mapResource(payload.new)]);
-        else if (payload.eventType === "UPDATE") setResources((ts) => ts.map((t) => t.id === payload.new.id ? mapResource(payload.new) : t));
-        else if (payload.eventType === "DELETE") setResources((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "research_sources" }, (payload) => {
-        if (payload.eventType === "INSERT") setResearchSources((ts) => [...ts, mapResearch(payload.new)]);
-        else if (payload.eventType === "UPDATE") setResearchSources((ts) => ts.map((t) => t.id === payload.new.id ? mapResearch(payload.new) : t));
-        else if (payload.eventType === "DELETE") setResearchSources((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
-      })
-      .subscribe();
+    const setupRealtime = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    return () => { supabase.removeChannel(channel); };
+      const channel = supabase
+        .channel("realtime-all", {
+          config: { broadcast: { self: true } }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "kanban_tasks" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setKanbanTasks((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapKanban(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setKanbanTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapKanban(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setKanbanTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setTasks((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapTask(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapTask(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setExpenses((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapExpense(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setExpenses((ts) => ts.map((t) => t.id === payload.new.id ? mapExpense(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setExpenses((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "courses" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setCourses((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapCourse(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setCourses((ts) => ts.map((t) => t.id === payload.new.id ? mapCourse(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setCourses((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "study_sessions" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setSessions((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapSession(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setSessions((ts) => ts.map((t) => t.id === payload.new.id ? mapSession(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setSessions((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "exams" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setExams((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapExam(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setExams((ts) => ts.map((t) => t.id === payload.new.id ? mapExam(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setExams((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "resources" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setResources((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapResource(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setResources((ts) => ts.map((t) => t.id === payload.new.id ? mapResource(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setResources((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "research_sources" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            setResearchSources((ts) => {
+              if (ts.find((t) => t.id === payload.new.id)) return ts;
+              return [...ts, mapResearch(payload.new)];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setResearchSources((ts) => ts.map((t) => t.id === payload.new.id ? mapResearch(payload.new) : t));
+          } else if (payload.eventType === "DELETE") {
+            setResearchSources((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+          }
+        })
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    };
+
+    setupRealtime();
   }, []);
 
   const getCourse = (id: string) => courses.find((c) => c.id === id);
