@@ -10,6 +10,7 @@ import { Plus, Copy, Trash2, Users, ChevronDown, ChevronRight, Link } from "luci
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import { toast } from "sonner";
 
+
 const columns: { id: KanbanTask["status"]; label: string }[] = [
   { id: "todo", label: "To Do" },
   { id: "in-progress", label: "In Progress" },
@@ -39,8 +40,10 @@ const GroupProjectsModule = () => {
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
 
-  const getInviteUrl = (token: string) => `https://studo-hub.vercel.app/project/invite/${token}`;
+  const getInviteUrl = (code: string) =>
+    `${window.location.origin}/invite/${code}`;
 
+  
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const newStatus = result.destination.droppableId as KanbanTask["status"];

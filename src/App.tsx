@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import Auth from "./pages/Auth.tsx";
 import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import InvitePage from "./pages/InvitePage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -24,9 +25,23 @@ const App = () => {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
       setSession(session);
-      if (!session) setShowAuth(false); // reset to landing on logout
+      if (!session) { setShowAuth(false); return; }
+
+      const pendingInvite = localStorage.getItem("pending_invite");
+      if (pendingInvite) {
+        localStorage.removeItem("pending_invite");
+        const { data: project } = await supabase
+          .from("projects").select("*").eq("invite_code", pendingInvite).single();
+        if (project) {
+          await supabase.from("project_members").insert({
+            project_id: project.id,
+            user_id: session.user.id,
+            email: session.user.email,
+          });
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -46,6 +61,7 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
+              <Route path="/invite/:code" element={<InvitePage />} />
               <Route
                 path="/"
                 element={

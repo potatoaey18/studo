@@ -46,31 +46,31 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | null>(null);
 
-// Helper: map snake_case DB rows to camelCase app types
-const mapCourse     = (r: any): Course         => ({ id: r.id, name: r.name, code: r.code, professor: r.professor, schedule: r.schedule, color: r.color });
-const mapSession    = (r: any): StudySession    => ({ id: r.id, courseId: r.course_id, date: r.date, hours: r.hours, topic: r.topic });
-const mapTask       = (r: any): Task            => ({ id: r.id, title: r.title, courseId: r.course_id, dueDate: r.due_date, completed: r.completed, priority: r.priority, type: r.type });
-const mapExam       = (r: any)                  => ({ id: r.id, subject: r.subject, date: r.date, location: r.location, notes: r.notes, status: r.status ?? "upcoming" });
-const mapKanban     = (r: any): KanbanTask      => ({ id: r.id, title: r.title, description: r.description, assignee: r.assignee, dueDate: r.due_date, status: r.status, project: r.project });
-const mapExpense    = (r: any): Expense         => ({ id: r.id, description: r.description, amount: r.amount, category: r.category, date: r.date });
-const mapResearch   = (r: any): ResearchSource  => ({ id: r.id, title: r.title, author: r.author, type: r.type, url: r.url, notes: r.notes });
-const mapResource   = (r: any): Resource        => ({ id: r.id, title: r.title, type: r.type, url: r.url, course: r.course, notes: r.notes });
-const mapSlot       = (r: any): ClassSlot       => ({ id: r.id, courseId: r.course_id, day: r.day, startHour: r.start_hour, endHour: r.end_hour, location: r.location });
-const mapProject    = (r: any): Project         => ({ id: r.id, name: r.name, inviteCode: r.invite_code, members: r.members ?? [] });
+const mapCourse   = (r: any): Course        => ({ id: r.id, name: r.name, code: r.code, professor: r.professor, schedule: r.schedule, color: r.color });
+const mapSession  = (r: any): StudySession  => ({ id: r.id, courseId: r.course_id, date: r.date, hours: r.hours, topic: r.topic });
+const mapTask     = (r: any): Task          => ({ id: r.id, title: r.title, courseId: r.course_id, dueDate: r.due_date, completed: r.completed, priority: r.priority, type: r.type });
+const mapExam     = (r: any)                => ({ id: r.id, subject: r.subject, date: r.date, location: r.location, notes: r.notes, status: r.status ?? "upcoming" });
+const mapKanban   = (r: any): KanbanTask    => ({ id: r.id, title: r.title, description: r.description, assignee: r.assignee, dueDate: r.due_date, status: r.status, project: r.project });
+const mapExpense  = (r: any): Expense       => ({ id: r.id, description: r.description, amount: r.amount, category: r.category, date: r.date });
+const mapResearch = (r: any): ResearchSource => ({ id: r.id, title: r.title, author: r.author, type: r.type, url: r.url, notes: r.notes });
+const mapResource = (r: any): Resource      => ({ id: r.id, title: r.title, type: r.type, url: r.url, course: r.course, notes: r.notes });
+const mapSlot     = (r: any): ClassSlot     => ({ id: r.id, courseId: r.course_id, day: r.day, startHour: r.start_hour, endHour: r.end_hour, location: r.location });
+const mapProject  = (r: any): Project       => ({ id: r.id, name: r.name, inviteCode: r.invite_code, members: r.members ?? [] });
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [courses, setCourses]               = useState<Course[]>([]);
-  const [sessions, setSessions]             = useState<StudySession[]>([]);
-  const [tasks, setTasks]                   = useState<Task[]>([]);
-  const [exams, setExams]                   = useState<(Exam & { status: string })[]>([]);
-  const [kanbanTasks, setKanbanTasks]       = useState<KanbanTask[]>([]);
-  const [expenses, setExpenses]             = useState<Expense[]>([]);
+  const [courses, setCourses]                 = useState<Course[]>([]);
+  const [sessions, setSessions]               = useState<StudySession[]>([]);
+  const [tasks, setTasks]                     = useState<Task[]>([]);
+  const [exams, setExams]                     = useState<(Exam & { status: string })[]>([]);
+  const [kanbanTasks, setKanbanTasks]         = useState<KanbanTask[]>([]);
+  const [expenses, setExpenses]               = useState<Expense[]>([]);
   const [researchSources, setResearchSources] = useState<ResearchSource[]>([]);
-  const [resources, setResources]           = useState<Resource[]>([]);
-  const [classSlots, setClassSlots]         = useState<ClassSlot[]>([]);
-  const [projects, setProjects]             = useState<Project[]>([]);
-  const [loading, setLoading]               = useState(true);
+  const [resources, setResources]             = useState<Resource[]>([]);
+  const [classSlots, setClassSlots]           = useState<ClassSlot[]>([]);
+  const [projects, setProjects]               = useState<Project[]>([]);
+  const [loading, setLoading]                 = useState(true);
 
+  // Initial data load
   useEffect(() => {
     const load = async () => {
       const [c, s, t, e, k, ex, rs, re, cs, p] = await Promise.all([
@@ -100,6 +100,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     load();
+  }, []);
+
+  // Realtime kanban sync
+  useEffect(() => {
+    const channel = supabase
+      .channel("kanban-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "kanban_tasks" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          setKanbanTasks((ts) => [...ts, mapKanban(payload.new)]);
+        } else if (payload.eventType === "UPDATE") {
+          setKanbanTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapKanban(payload.new) : t));
+        } else if (payload.eventType === "DELETE") {
+          setKanbanTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const getCourse = (id: string) => courses.find((c) => c.id === id);
