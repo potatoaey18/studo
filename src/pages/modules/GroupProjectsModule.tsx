@@ -11,7 +11,6 @@ import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
-
 const columns: { id: KanbanTask["status"]; label: string }[] = [
   { id: "todo", label: "To Do" },
   { id: "in-progress", label: "In Progress" },
@@ -25,12 +24,6 @@ const fields: FieldConfig[] = [
   { key: "dueDate", label: "Due Date", type: "date" },
 ];
 
-function generateToken() {
-  return Array.from(crypto.getRandomValues(new Uint8Array(16)))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 const GroupProjectsModule = () => {
   const { kanbanTasks, setKanbanTasks, projects, setProjects } = useData();
   const [selected, setSelected] = useState<KanbanTask | null>(null);
@@ -41,30 +34,59 @@ const GroupProjectsModule = () => {
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
 
-  const getInviteUrl = (code: string) =>
-    `${window.location.origin}/invite/${code}`;
-  
-  const onDragEnd = (result: DropResult) => {
+  const getInviteUrl = (code: string) => `${window.location.origin}/invite/${code}`;
+
+  const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
     const newStatus = result.destination.droppableId as KanbanTask["status"];
-    setKanbanTasks((ts) => ts.map((t) => (t.id === result.draggableId ? { ...t, status: newStatus } : t)));
+    const taskId = result.draggableId;
+
+    // Optimistic update
+    setKanbanTasks((ts) => ts.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
+
+    // Persist to Supabase
+    await supabase.from("kanban_tasks").update({ status: newStatus }).eq("id", taskId);
   };
 
-  const update = (key: string, value: any) => {
+  const update = async (key: string, value: any) => {
     if (!selected) return;
     const updated = { ...selected, [key]: value };
     setSelected(updated);
-    setKanbanTasks((ts) => ts.map((t) => (t.id === updated.id ? updated : t)));
+    setKanbanTasks((ts) => ts.map((t) => t.id === updated.id ? updated : t));
+
+    // Map camelCase to snake_case for Supabase
+    const dbKey = key === "dueDate" ? "due_date" : key;
+    await supabase.from("kanban_tasks").update({ [dbKey]: value }).eq("id", updated.id);
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!activeProject) return;
-    const t: KanbanTask = {
-      id: `k${Date.now()}`, title: "", description: "", assignee: "",
-      dueDate: "", status: "todo", project: activeProject.name,
-    };
-    setKanbanTasks((ts) => [t, ...ts]);
-    setSelected(t);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data, error } = await supabase.from("kanban_tasks").insert({
+      title: "",
+      description: "",
+      assignee: "",
+      due_date: "",
+      status: "todo",
+      project: activeProject.name,
+      user_id: session.user.id,
+    }).select().single();
+
+    if (!error && data) {
+      const newTask: KanbanTask = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        assignee: data.assignee,
+        dueDate: data.due_date,
+        status: data.status,
+        project: data.project,
+      };
+      setKanbanTasks((ts) => [newTask, ...ts]);
+      setSelected(newTask);
+    }
   };
 
   const addProject = async () => {
@@ -143,9 +165,7 @@ const GroupProjectsModule = () => {
             {projects.map((p) => (
               <div
                 key={p.id}
-                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors group ${
-                  activeProjectId === p.id ? "bg-accent" : "hover:bg-muted/50"
-                }`}
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors group ${activeProjectId === p.id ? "bg-accent" : "hover:bg-muted/50"}`}
                 onClick={() => setActiveProjectId(p.id)}
               >
                 <div>
@@ -195,7 +215,6 @@ const GroupProjectsModule = () => {
         </div>
       )}
 
-      {/* Kanban */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {columns.map((col) => {
