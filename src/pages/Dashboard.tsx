@@ -14,7 +14,6 @@ import ExamsModule from "./modules/ExamsModule";
 import GroupProjectsModule from "./modules/GroupProjectsModule";
 import ClassScheduleModule from "./modules/ClassScheduleModule";
 import ExpensesModule from "./modules/ExpensesModule";
-import ResearchModule from "./modules/ResearchModule";
 import ResourcesModule from "./modules/ResourcesModule";
 import SettingsModule from "./modules/SettingsModule";
 
