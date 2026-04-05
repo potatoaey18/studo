@@ -110,7 +110,7 @@ const ExpensesModule = () => {
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <Tooltip
-                    formatter={(v: number) => `$${v.toFixed(2)}`}
+                    formatter={(v: number) => `PHP${v.toFixed(2)}`}
                     contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                   />
                   <Bar dataKey="amount" fill="hsl(var(--foreground))" radius={[4, 4, 0, 0]} />

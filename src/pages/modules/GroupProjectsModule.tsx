@@ -39,7 +39,7 @@ const GroupProjectsModule = () => {
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
 
-  const getInviteUrl = (token: string) => `https://studo.app/project/invite/${token}`;
+  const getInviteUrl = (token: string) => `https://studo-hub.vercel.app/project/invite/${token}`;
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
