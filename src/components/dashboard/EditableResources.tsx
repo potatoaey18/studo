@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import DynamicSelect from "@/components/DynamicSelect";
 
-const types = ["PDF", "Video", "Website", "Interactive", "Other"];
+const types = ["PDF", "Video", "Website", "Interactive"];
 
 const EditableResources = () => {
   const [resources, setResources] = useState<Resource[]>(demoResources);
