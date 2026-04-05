@@ -23,7 +23,6 @@ export type SectionId =
   | "group-projects"
   | "class-schedule"
   | "expenses"
-  | "research"
   | "resources"
   | "settings";
 
