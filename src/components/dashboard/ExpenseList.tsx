@@ -29,7 +29,7 @@ const ExpenseList = () => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Total: <span className="font-semibold text-foreground">${total.toFixed(2)}</span></p>
+        <p className="text-sm text-muted-foreground">Total: <span className="font-semibold text-foreground">PHP{total.toFixed(2)}</span></p>
         <Button variant="outline" size="sm" onClick={() => setAdding(!adding)} className="gap-1">
           <Plus className="h-3 w-3" /> Add
         </Button>
@@ -48,7 +48,7 @@ const ExpenseList = () => {
             <p className="text-sm font-medium">{e.description}</p>
             <p className="text-xs text-muted-foreground">{e.category} · {e.date}</p>
           </div>
-          <p className="font-display font-semibold text-sm">${e.amount.toFixed(2)}</p>
+          <p className="font-display font-semibold text-sm">PHP{e.amount.toFixed(2)}</p>
         </Card>
       ))}
     </div>

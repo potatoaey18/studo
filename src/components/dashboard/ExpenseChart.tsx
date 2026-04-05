@@ -27,7 +27,7 @@ const ExpenseChart = () => {
           <div key={d.name} className="flex items-center gap-2 text-xs">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
             <span className="text-muted-foreground">{d.name}</span>
-            <span className="font-medium">${d.value}</span>
+            <span className="font-medium">PHP{d.value}</span>
           </div>
         ))}
       </div>

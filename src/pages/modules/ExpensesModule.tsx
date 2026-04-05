@@ -20,7 +20,7 @@ const COLORS = [
 
 const fields: FieldConfig[] = [
   { key: "description", label: "Description", placeholder: "What was it for?" },
-  { key: "amount", label: "Amount ($)", type: "number", placeholder: "0" },
+  { key: "amount", label: "Amount (PHP)", type: "number", placeholder: "0" },
   { key: "category", label: "Category", type: "select", options: categories },
   { key: "date", label: "Date", type: "date" },
 ];
@@ -73,7 +73,7 @@ const ExpensesModule = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-lg font-semibold">Expense Tracker</h2>
-          <p className="text-xs text-muted-foreground">Total: ${total.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">Total: PHP{total.toFixed(2)}</p>
         </div>
         <Button variant="outline" size="sm" onClick={add} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" /> Add Expense
@@ -94,7 +94,7 @@ const ExpensesModule = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: number) => `$${v.toFixed(2)}`}
+                    formatter={(v: number) => `PHP${v.toFixed(2)}`}
                     contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                   />
                 </PieChart>
@@ -133,7 +133,7 @@ const ExpensesModule = () => {
               <p className="text-xs text-muted-foreground">{e.category} · {e.date}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-display text-sm font-semibold">${e.amount.toFixed(2)}</span>
+              <span className="font-display text-sm font-semibold">PHP{e.amount.toFixed(2)}</span>
               <Button
                 variant="ghost" size="icon"
                 onClick={(ev) => { ev.stopPropagation(); remove(e.id); }}

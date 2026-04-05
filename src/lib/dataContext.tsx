@@ -1,14 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import {
-  Course, demoCourses,
-  StudySession, demoStudySessions,
-  Task, demoTasks,
-  Exam, demoExams,
-  KanbanTask, demoKanbanTasks,
-  Expense, demoExpenses,
-  ResearchSource, demoResearchSources,
-  Resource, demoResources,
-} from "./demoData";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "./supabase";
+import { Course, StudySession, Task, Exam, KanbanTask, Expense, ResearchSource, Resource } from "./demoData";
 
 export interface ClassSlot {
   id: string;
@@ -25,43 +17,6 @@ export interface Project {
   inviteCode: string;
   members: string[];
 }
-
-function parseScheduleToSlots(courses: Course[]): ClassSlot[] {
-  const slots: ClassSlot[] = [];
-  courses.forEach((c) => {
-    const parts = c.schedule.split(" ");
-    const dayCode = parts[0];
-    const timeStr = parts.slice(1).join(" ");
-    const hour = parseTimeToHour(timeStr);
-    const days: string[] = [];
-    if (dayCode === "TTh") { days.push("Tuesday", "Thursday"); }
-    else if (dayCode === "MWF") { days.push("Monday", "Wednesday", "Friday"); }
-    else {
-      if (dayCode.includes("M")) days.push("Monday");
-      if (dayCode.includes("W")) days.push("Wednesday");
-      if (dayCode.includes("F")) days.push("Friday");
-      if (dayCode.includes("T")) days.push("Tuesday");
-    }
-    days.forEach((d) => {
-      slots.push({ id: `cs-${c.id}-${d}`, courseId: c.id, day: d, startHour: hour, endHour: hour + 1, location: "" });
-    });
-  });
-  return slots;
-}
-
-function parseTimeToHour(t: string): number {
-  const match = t.match(/(\d+):?(\d*)\s*(AM|PM)?/i);
-  if (!match) return 9;
-  let h = parseInt(match[1]);
-  if (match[3]?.toUpperCase() === "PM" && h !== 12) h += 12;
-  if (match[3]?.toUpperCase() === "AM" && h === 12) h = 0;
-  return h;
-}
-
-const defaultProjects: Project[] = [
-  { id: "p1", name: "Mobile App", inviteCode: "STUDO-MA-2026", members: ["Alex", "Jordan", "Sam"] },
-  { id: "p2", name: "Research Project", inviteCode: "STUDO-RP-2026", members: ["Jordan", "Sam"] },
-];
 
 interface DataContextType {
   courses: Course[];
@@ -86,23 +41,66 @@ interface DataContextType {
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   getCourse: (id: string) => Course | undefined;
   getCourseOptions: () => { id: string; label: string }[];
+  loading: boolean;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
 
+// Helper: map snake_case DB rows to camelCase app types
+const mapCourse     = (r: any): Course         => ({ id: r.id, name: r.name, code: r.code, professor: r.professor, schedule: r.schedule, color: r.color });
+const mapSession    = (r: any): StudySession    => ({ id: r.id, courseId: r.course_id, date: r.date, hours: r.hours, topic: r.topic });
+const mapTask       = (r: any): Task            => ({ id: r.id, title: r.title, courseId: r.course_id, dueDate: r.due_date, completed: r.completed, priority: r.priority, type: r.type });
+const mapExam       = (r: any)                  => ({ id: r.id, subject: r.subject, date: r.date, location: r.location, notes: r.notes, status: r.status ?? "upcoming" });
+const mapKanban     = (r: any): KanbanTask      => ({ id: r.id, title: r.title, description: r.description, assignee: r.assignee, dueDate: r.due_date, status: r.status, project: r.project });
+const mapExpense    = (r: any): Expense         => ({ id: r.id, description: r.description, amount: r.amount, category: r.category, date: r.date });
+const mapResearch   = (r: any): ResearchSource  => ({ id: r.id, title: r.title, author: r.author, type: r.type, url: r.url, notes: r.notes });
+const mapResource   = (r: any): Resource        => ({ id: r.id, title: r.title, type: r.type, url: r.url, course: r.course, notes: r.notes });
+const mapSlot       = (r: any): ClassSlot       => ({ id: r.id, courseId: r.course_id, day: r.day, startHour: r.start_hour, endHour: r.end_hour, location: r.location });
+const mapProject    = (r: any): Project         => ({ id: r.id, name: r.name, inviteCode: r.invite_code, members: r.members ?? [] });
+
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [courses, setCourses] = useState<Course[]>(demoCourses);
-  const [sessions, setSessions] = useState<StudySession[]>(demoStudySessions);
-  const [tasks, setTasks] = useState<Task[]>(demoTasks);
-  const [exams, setExams] = useState<(Exam & { status: string })[]>(
-    demoExams.map((e) => ({ ...e, status: "upcoming" }))
-  );
-  const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>(demoKanbanTasks);
-  const [expenses, setExpenses] = useState<Expense[]>(demoExpenses);
-  const [researchSources, setResearchSources] = useState<ResearchSource[]>(demoResearchSources);
-  const [resources, setResources] = useState<Resource[]>(demoResources);
-  const [classSlots, setClassSlots] = useState<ClassSlot[]>(parseScheduleToSlots(demoCourses));
-  const [projects, setProjects] = useState<Project[]>(defaultProjects);
+  const [courses, setCourses]               = useState<Course[]>([]);
+  const [sessions, setSessions]             = useState<StudySession[]>([]);
+  const [tasks, setTasks]                   = useState<Task[]>([]);
+  const [exams, setExams]                   = useState<(Exam & { status: string })[]>([]);
+  const [kanbanTasks, setKanbanTasks]       = useState<KanbanTask[]>([]);
+  const [expenses, setExpenses]             = useState<Expense[]>([]);
+  const [researchSources, setResearchSources] = useState<ResearchSource[]>([]);
+  const [resources, setResources]           = useState<Resource[]>([]);
+  const [classSlots, setClassSlots]         = useState<ClassSlot[]>([]);
+  const [projects, setProjects]             = useState<Project[]>([]);
+  const [loading, setLoading]               = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const [c, s, t, e, k, ex, rs, re, cs, p] = await Promise.all([
+        supabase.from("courses").select("*"),
+        supabase.from("study_sessions").select("*"),
+        supabase.from("tasks").select("*"),
+        supabase.from("exams").select("*"),
+        supabase.from("kanban_tasks").select("*"),
+        supabase.from("expenses").select("*"),
+        supabase.from("research_sources").select("*"),
+        supabase.from("resources").select("*"),
+        supabase.from("class_slots").select("*"),
+        supabase.from("projects").select("*"),
+      ]);
+
+      setCourses((c.data ?? []).map(mapCourse));
+      setSessions((s.data ?? []).map(mapSession));
+      setTasks((t.data ?? []).map(mapTask));
+      setExams((e.data ?? []).map(mapExam));
+      setKanbanTasks((k.data ?? []).map(mapKanban));
+      setExpenses((ex.data ?? []).map(mapExpense));
+      setResearchSources((rs.data ?? []).map(mapResearch));
+      setResources((re.data ?? []).map(mapResource));
+      setClassSlots((cs.data ?? []).map(mapSlot));
+      setProjects((p.data ?? []).map(mapProject));
+      setLoading(false);
+    };
+
+    load();
+  }, []);
 
   const getCourse = (id: string) => courses.find((c) => c.id === id);
   const getCourseOptions = () => courses.map((c) => ({ id: c.id, label: `${c.code} – ${c.name}` }));
@@ -113,7 +111,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       exams, setExams, kanbanTasks, setKanbanTasks, expenses, setExpenses,
       researchSources, setResearchSources, resources, setResources,
       classSlots, setClassSlots, projects, setProjects,
-      getCourse, getCourseOptions,
+      getCourse, getCourseOptions, loading,
     }}>
       {children}
     </DataContext.Provider>

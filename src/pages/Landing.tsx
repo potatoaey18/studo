@@ -204,6 +204,7 @@ const DemoAnalytics = () => {
   );
 };
 
+
 // ── Demo Tab Navigation ──
 
 const demoTabs = ["Dashboard", "Study Tracker", "Kanban", "Schedule"] as const;
@@ -282,6 +283,18 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
         </motion.div>
       </section>
 
+      {/* Philosophy */}
+      <section className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+          <h2 className="font-display text-3xl font-bold mb-6">Built for clarity.</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Unlike many productivity platforms that overwhelm students with complex features,
+            Studo focuses on clarity, simplicity, and essential tools that students actually use.
+            No cluttered dashboards, no steep learning curves — just a calm space to manage your academic life.
+          </p>
+        </motion.div>
+      </section>
+
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-20">
         <motion.h2 variants={fadeUp} custom={0} initial="hidden" whileInView="visible" viewport={{ once: true }} className="font-display text-3xl font-bold text-center mb-12">
@@ -300,7 +313,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
       </section>
 
       {/* Interactive Demo */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
+      <section className="max-w-5xl mx-auto px-6 pt-16 pb-6">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
           <h2 className="font-display text-3xl font-bold text-center mb-3">Try it out.</h2>
           <p className="text-center text-muted-foreground text-sm mb-10">An interactive preview — drag tasks, start the timer, explore modules.</p>
@@ -308,7 +321,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
           className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-          <div className="flex min-h-[420px]">
+          <div className="flex min-h-[300px]">
             {/* Mini sidebar */}
             <div className="w-44 border-r bg-muted/20 p-4 hidden md:block">
               <p className="font-display font-bold text-sm mb-4">Studo</p>
@@ -350,17 +363,6 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
         </div>
       </section>
 
-      {/* Philosophy */}
-      <section className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-          <h2 className="font-display text-3xl font-bold mb-6">Built for clarity.</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Unlike many productivity platforms that overwhelm students with complex features,
-            Studo focuses on clarity, simplicity, and essential tools that students actually use.
-            No cluttered dashboards, no steep learning curves — just a calm space to manage your academic life.
-          </p>
-        </motion.div>
-      </section>
 
       {/* Footer */}
       <footer className="border-t mt-12">
