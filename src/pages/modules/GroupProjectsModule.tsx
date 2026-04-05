@@ -64,7 +64,22 @@ const GroupProjectsModule = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    // Create task locally first so modal opens immediately
+    const tempTask: KanbanTask = {
+      id: `k${Date.now()}`,
+      title: "",
+      description: "",
+      assignee: "",
+      dueDate: "",
+      status: "todo",
+      project: activeProject.name,
+    };
+    setKanbanTasks((ts) => [tempTask, ...ts]);
+    setSelected(tempTask);
+
+    // Then persist to Supabase in background
     const { data, error } = await supabase.from("kanban_tasks").insert({
+      id: tempTask.id,
       title: "",
       description: "",
       assignee: "",
@@ -74,19 +89,17 @@ const GroupProjectsModule = () => {
       user_id: session.user.id,
     }).select().single();
 
-    if (!error && data) {
-      const newTask: KanbanTask = {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        assignee: data.assignee,
-        dueDate: data.due_date,
-        status: data.status,
-        project: data.project,
-      };
-      setKanbanTasks((ts) => [newTask, ...ts]);
-      setSelected(newTask);
+    if (error) {
+      console.error("Failed to save task:", error);
+      // Rollback if failed
+      setKanbanTasks((ts) => ts.filter((t) => t.id !== tempTask.id));
+      setSelected(null);
     }
+  };
+  
+  const removeTask = async (id: string) => {
+    setKanbanTasks((ts) => ts.filter((t) => t.id !== id));
+    await supabase.from("kanban_tasks").delete().eq("id", id);
   };
 
   const addProject = async () => {
@@ -237,13 +250,22 @@ const GroupProjectsModule = () => {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className="p-3 mb-2 cursor-grab active:cursor-grabbing hover:ring-1 hover:ring-ring/20 transition-shadow"
+                            className="p-3 mb-2 cursor-grab active:cursor-grabbing hover:ring-1 hover:ring-ring/20 transition-shadow group"
                             onClick={() => setSelected(task)}
                           >
                             <p className="text-sm font-medium">{task.title || "Untitled"}</p>
                             <div className="flex items-center justify-between mt-2">
                               <Badge variant="secondary" className="text-[10px]">{task.assignee || "Unassigned"}</Badge>
-                              <span className="text-[10px] text-muted-foreground">{task.dueDate}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground">{task.dueDate}</span>
+                                <Button
+                                  variant="ghost" size="icon"
+                                  onClick={(e) => { e.stopPropagation(); removeTask(task.id); }}
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                           </Card>
                         )}

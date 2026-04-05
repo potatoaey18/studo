@@ -114,9 +114,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const channel = supabase
       .channel("realtime-all")
       .on("postgres_changes", { event: "*", schema: "public", table: "kanban_tasks" }, (payload) => {
-        if (payload.eventType === "INSERT") setKanbanTasks((ts) => [...ts, mapKanban(payload.new)]);
-        else if (payload.eventType === "UPDATE") setKanbanTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapKanban(payload.new) : t));
-        else if (payload.eventType === "DELETE") setKanbanTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+        if (payload.eventType === "INSERT") {
+          setKanbanTasks((ts) => {
+            // Only add if it doesn't already exist (avoid duplicate from optimistic update)
+            if (ts.find((t) => t.id === payload.new.id)) return ts;
+            return [...ts, mapKanban(payload.new)];
+          });
+        } else if (payload.eventType === "UPDATE") {
+          setKanbanTasks((ts) => ts.map((t) => t.id === payload.new.id ? mapKanban(payload.new) : t));
+        } else if (payload.eventType === "DELETE") {
+          setKanbanTasks((ts) => ts.filter((t) => t.id !== (payload.old as any).id));
+        }
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, (payload) => {
         if (payload.eventType === "INSERT") setTasks((ts) => [...ts, mapTask(payload.new)]);
