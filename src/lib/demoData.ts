@@ -66,6 +66,7 @@ export interface Resource {
   type: string;
   url: string;
   course: string;
+  notes?: string;
 }
 
 export const demoCourses: Course[] = [

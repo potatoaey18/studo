@@ -1,6 +1,6 @@
 import {
   BarChart3, Clock, BookOpen, ListChecks, GraduationCap, Users,
-  CalendarDays, DollarSign, Search, FolderOpen, Settings
+  CalendarDays, DollarSign, FolderOpen, Settings
 } from "lucide-react";
 import {
   Sidebar,
