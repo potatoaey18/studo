@@ -1,6 +1,6 @@
 import {
   BarChart3, Clock, BookOpen, ListChecks, GraduationCap, Users,
-  CalendarDays, DollarSign, Search, FolderOpen, Settings
+  CalendarDays, DollarSign, FolderOpen, Settings
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,7 +23,6 @@ export type SectionId =
   | "group-projects"
   | "class-schedule"
   | "expenses"
-  | "research"
   | "resources"
   | "settings";
 
@@ -36,8 +35,7 @@ const items: { id: SectionId; title: string; icon: React.ElementType }[] = [
   { id: "group-projects", title: "Group Projects", icon: Users },
   { id: "class-schedule", title: "Class Schedule", icon: CalendarDays },
   { id: "expenses", title: "Expense Tracker", icon: DollarSign },
-  { id: "research", title: "Research Organizer", icon: Search },
-  { id: "resources", title: "Resource Hub", icon: FolderOpen },
+  { id: "resources", title: "Resources", icon: FolderOpen },
   { id: "settings", title: "Settings", icon: Settings },
 ];
 

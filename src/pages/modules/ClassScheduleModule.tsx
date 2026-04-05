@@ -6,8 +6,8 @@ import { Plus, Trash2 } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import DynamicSelect from "@/components/DynamicSelect";
 
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const hours = Array.from({ length: 13 }, (_, i) => i + 7); // 7 AM to 7 PM
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const hours = Array.from({ length: 24 }, (_, i) => i); // 0–23
 
 const fields: FieldConfig[] = [
   { key: "day", label: "Day", type: "select", options: days },
@@ -17,9 +17,10 @@ const fields: FieldConfig[] = [
 ];
 
 const formatHour = (h: number) => {
-  const ampm = h >= 12 ? "PM" : "AM";
-  const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return `${hr} ${ampm}`;
+  if (h === 0) return "12 AM";
+  if (h < 12) return `${h} AM`;
+  if (h === 12) return "12 PM";
+  return `${h - 12} PM`;
 };
 
 const ClassScheduleModule = () => {
@@ -63,9 +64,9 @@ const ClassScheduleModule = () => {
 
       {/* Time-based grid */}
       <div className="overflow-x-auto">
-        <div className="min-w-[700px]">
+        <div className="min-w-[800px]">
           {/* Header */}
-          <div className="grid grid-cols-[60px_repeat(5,1fr)] gap-px bg-border rounded-t-lg overflow-hidden">
+          <div className="grid grid-cols-[60px_repeat(7,1fr)] gap-px bg-border rounded-t-lg overflow-hidden">
             <div className="bg-background p-2" />
             {days.map((d) => (
               <div key={d} className="bg-muted/30 p-2 text-center">
@@ -76,7 +77,7 @@ const ClassScheduleModule = () => {
 
           {/* Time rows */}
           {hours.map((hour) => (
-            <div key={hour} className="grid grid-cols-[60px_repeat(5,1fr)] gap-px bg-border">
+            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] gap-px bg-border">
               <div className="bg-background p-2 flex items-start justify-end pr-3">
                 <span className="text-[10px] text-muted-foreground">{formatHour(hour)}</span>
               </div>
@@ -85,7 +86,7 @@ const ClassScheduleModule = () => {
                   (s) => s.day === day && s.startHour <= hour && s.endHour > hour
                 );
                 return (
-                  <div key={day} className="bg-background min-h-[48px] relative p-0.5">
+                  <div key={day} className="bg-background min-h-[40px] relative p-0.5">
                     {slotsHere.map((slot) => {
                       const course = getCourse(slot.courseId);
                       const isStart = slot.startHour === hour;
@@ -95,7 +96,7 @@ const ClassScheduleModule = () => {
                         <div
                           key={slot.id}
                           className="absolute inset-x-0.5 rounded-md bg-accent/80 border border-border p-1.5 cursor-pointer hover:bg-accent transition-colors z-10 group"
-                          style={{ height: `${span * 48 - 4}px`, top: 2 }}
+                          style={{ height: `${span * 40 - 4}px`, top: 2 }}
                           onClick={() => setSelected(slot)}
                         >
                           <p className="text-[10px] font-medium truncate">{course?.code || "—"}</p>

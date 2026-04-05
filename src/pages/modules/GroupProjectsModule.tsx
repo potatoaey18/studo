@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Copy, Trash2, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Copy, Trash2, Users, ChevronDown, ChevronRight, Link } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import { toast } from "sonner";
 
@@ -23,6 +23,12 @@ const fields: FieldConfig[] = [
   { key: "dueDate", label: "Due Date", type: "date" },
 ];
 
+function generateToken() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const GroupProjectsModule = () => {
   const { kanbanTasks, setKanbanTasks, projects, setProjects } = useData();
   const [selected, setSelected] = useState<KanbanTask | null>(null);
@@ -32,6 +38,8 @@ const GroupProjectsModule = () => {
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
+
+  const getInviteUrl = (token: string) => `https://studo.app/project/invite/${token}`;
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -61,7 +69,7 @@ const GroupProjectsModule = () => {
     const p: Project = {
       id: `p${Date.now()}`,
       name: newProjectName.trim(),
-      inviteCode: `STUDO-${newProjectName.trim().slice(0, 2).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+      inviteCode: generateToken(),
       members: ["You"],
     };
     setProjects((ps) => [p, ...ps]);
@@ -76,9 +84,9 @@ const GroupProjectsModule = () => {
     if (activeProjectId === id) setActiveProjectId(projects.find((pr) => pr.id !== id)?.id || "");
   };
 
-  const copyInvite = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success("Invite code copied!");
+  const copyInviteLink = (code: string) => {
+    navigator.clipboard.writeText(getInviteUrl(code));
+    toast.success("Invite link copied to clipboard!");
   };
 
   return (
@@ -96,7 +104,6 @@ const GroupProjectsModule = () => {
         </div>
       </div>
 
-      {/* Project selector panel */}
       {showProjectPanel && (
         <Card className="p-4 space-y-3">
           <div className="flex gap-2">
@@ -129,11 +136,11 @@ const GroupProjectsModule = () => {
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost" size="icon"
-                    onClick={(e) => { e.stopPropagation(); copyInvite(p.inviteCode); }}
+                    onClick={(e) => { e.stopPropagation(); copyInviteLink(p.inviteCode); }}
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                    title={`Invite: ${p.inviteCode}`}
+                    title="Copy invite link"
                   >
-                    <Copy className="h-3 w-3" />
+                    <Link className="h-3 w-3" />
                   </Button>
                   <Button
                     variant="ghost" size="icon"
@@ -149,14 +156,17 @@ const GroupProjectsModule = () => {
         </Card>
       )}
 
-      {/* Active project info */}
       {activeProject && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Badge variant="secondary" className="text-xs">{activeProject.name}</Badge>
-          <span className="text-[10px] text-muted-foreground">
-            Invite: {activeProject.inviteCode}
-          </span>
-          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyInvite(activeProject.inviteCode)}>
+          <button
+            onClick={() => copyInviteLink(activeProject.inviteCode)}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <Link className="h-3 w-3" />
+            {getInviteUrl(activeProject.inviteCode).slice(0, 50)}…
+          </button>
+          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyInviteLink(activeProject.inviteCode)}>
             <Copy className="h-3 w-3" />
           </Button>
         </div>

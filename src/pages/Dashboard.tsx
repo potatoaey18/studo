@@ -14,7 +14,6 @@ import ExamsModule from "./modules/ExamsModule";
 import GroupProjectsModule from "./modules/GroupProjectsModule";
 import ClassScheduleModule from "./modules/ClassScheduleModule";
 import ExpensesModule from "./modules/ExpensesModule";
-import ResearchModule from "./modules/ResearchModule";
 import ResourcesModule from "./modules/ResourcesModule";
 import SettingsModule from "./modules/SettingsModule";
 
@@ -31,7 +30,6 @@ const Dashboard = ({ onSignOut }: { onSignOut: () => void }) => {
       case "group-projects": return <GroupProjectsModule />;
       case "class-schedule": return <ClassScheduleModule />;
       case "expenses": return <ExpensesModule />;
-      case "research": return <ResearchModule />;
       case "resources": return <ResourcesModule />;
       case "settings": return <SettingsModule />;
     }
