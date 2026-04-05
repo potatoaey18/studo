@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Copy, Trash2, Users, ChevronDown, ChevronRight, Link } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 
 const columns: { id: KanbanTask["status"]; label: string }[] = [
@@ -42,7 +43,6 @@ const GroupProjectsModule = () => {
 
   const getInviteUrl = (code: string) =>
     `${window.location.origin}/invite/${code}`;
-
   
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -67,20 +67,40 @@ const GroupProjectsModule = () => {
     setSelected(t);
   };
 
-  const addProject = () => {
+  const addProject = async () => {
     if (!newProjectName.trim()) return;
-    const p: Project = {
-      id: `p${Date.now()}`,
-      name: newProjectName.trim(),
-      inviteCode: generateToken(),
-      members: ["You"],
-    };
-    setProjects((ps) => [p, ...ps]);
-    setActiveProjectId(p.id);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({ name: newProjectName.trim(), owner_id: session.user.id })
+      .select("*, project_members(email)")
+      .single();
+
+    if (!error && data) {
+      await supabase.from("project_members").insert({
+        project_id: data.id,
+        user_id: session.user.id,
+        email: session.user.email,
+      });
+
+      const newProject: Project = {
+        id: data.id,
+        name: data.name,
+        inviteCode: data.invite_code,
+        ownerId: data.owner_id,
+        members: data.project_members?.map((m: any) => m.email) ?? [],
+      };
+
+      setProjects((ps) => [newProject, ...ps]);
+      setActiveProjectId(data.id);
+    }
     setNewProjectName("");
   };
 
-  const removeProject = (id: string) => {
+  const removeProject = async (id: string) => {
+    await supabase.from("projects").delete().eq("id", id);
     const p = projects.find((pr) => pr.id === id);
     if (p) setKanbanTasks((ts) => ts.filter((t) => t.project !== p.name));
     setProjects((ps) => ps.filter((pr) => pr.id !== id));

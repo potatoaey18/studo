@@ -15,7 +15,8 @@ export interface Project {
   id: string;
   name: string;
   inviteCode: string;
-  members: string[];
+  ownerId: string;
+  members: string[]; 
 }
 
 interface DataContextType {
@@ -55,7 +56,13 @@ const mapExpense  = (r: any): Expense       => ({ id: r.id, description: r.descr
 const mapResearch = (r: any): ResearchSource => ({ id: r.id, title: r.title, author: r.author, type: r.type, url: r.url, notes: r.notes });
 const mapResource = (r: any): Resource      => ({ id: r.id, title: r.title, type: r.type, url: r.url, course: r.course, notes: r.notes });
 const mapSlot     = (r: any): ClassSlot     => ({ id: r.id, courseId: r.course_id, day: r.day, startHour: r.start_hour, endHour: r.end_hour, location: r.location });
-const mapProject  = (r: any): Project       => ({ id: r.id, name: r.name, inviteCode: r.invite_code, members: r.members ?? [] });
+const mapProject  = (r: any): Project => ({
+  id: r.id,
+  name: r.name,
+  inviteCode: r.invite_code,
+  ownerId: r.owner_id,
+  members: r.project_members?.map((m: any) => m.email) ?? [],
+});
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [courses, setCourses]                 = useState<Course[]>([]);
@@ -83,7 +90,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         supabase.from("research_sources").select("*"),
         supabase.from("resources").select("*"),
         supabase.from("class_slots").select("*"),
-        supabase.from("projects").select("*"),
+        supabase.from("projects").select("*, project_members(email)"),
       ]);
 
       setCourses((c.data ?? []).map(mapCourse));
