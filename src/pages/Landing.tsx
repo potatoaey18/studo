@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Calendar, BarChart3, KanbanSquare, Clock, DollarSign, Search, FolderOpen } from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, BarChart3, KanbanSquare, Clock, DollarSign, FolderOpen, Play, Pause, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const fadeUp = {
@@ -9,15 +13,108 @@ const fadeUp = {
 };
 
 const features = [
-  { icon: Clock, title: "Study Tracker", desc: "Log and visualize your study hours by subject" },
-  { icon: BookOpen, title: "Course Requirements", desc: "Track assignments, papers, and deadlines" },
-  { icon: Calendar, title: "Exam Countdown", desc: "Never miss an exam with countdown timers" },
-  { icon: KanbanSquare, title: "Kanban Board", desc: "Manage group projects with drag-and-drop" },
-  { icon: BarChart3, title: "Class Schedule", desc: "View your weekly schedule at a glance" },
-  { icon: DollarSign, title: "Expense Tracker", desc: "Keep student spending under control" },
-  { icon: Search, title: "Research Organizer", desc: "Collect and annotate research sources" },
-  { icon: FolderOpen, title: "Resource Hub", desc: "Centralize lecture slides, links, and materials" },
+  { icon: Clock, title: "Study Tracker", desc: "Pomodoro timer with automatic session logging" },
+  { icon: BookOpen, title: "Courses", desc: "Manage courses synced across all modules" },
+  { icon: Calendar, title: "Class Schedule", desc: "Full-day calendar view of your classes" },
+  { icon: KanbanSquare, title: "Kanban Boards", desc: "Drag-and-drop project management" },
+  { icon: BarChart3, title: "Analytics", desc: "Visualize study hours and spending" },
+  { icon: DollarSign, title: "Expense Tracker", desc: "Track spending with category analytics" },
+  { icon: FolderOpen, title: "Resources", desc: "Organize links, notes, and documents by course" },
 ];
+
+// Interactive demo components
+const DemoTimer = () => {
+  const [running, setRunning] = useState(false);
+  const [time, setTime] = useState(25 * 60);
+
+  return (
+    <div className="text-center space-y-3">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Focus Time</p>
+      <p className="font-display text-3xl font-bold tabular-nums">
+        {String(Math.floor(time / 60)).padStart(2, "0")}:{String(time % 60).padStart(2, "0")}
+      </p>
+      <div className="flex justify-center gap-2">
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setRunning(!running)}>
+          {running ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+          {running ? "Pause" : "Start"}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const DemoKanban = () => {
+  const cols = [
+    { label: "To Do", tasks: ["Design wireframes", "Write API docs"] },
+    { label: "In Progress", tasks: ["Database schema"] },
+    { label: "Done", tasks: ["Project setup"] },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {cols.map((col) => (
+        <div key={col.label} className="rounded-lg bg-muted/30 p-2">
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-2">{col.label}</p>
+          {col.tasks.map((t) => (
+            <div key={t} className="bg-background rounded-md p-2 mb-1 flex items-center gap-1.5 text-[10px] border">
+              <GripVertical className="h-2.5 w-2.5 text-muted-foreground" />
+              {t}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const DemoSchedule = () => {
+  const slots = [
+    { time: "9 AM", course: "CS201", name: "Data Structures", days: [0, 2, 4] },
+    { time: "10 AM", course: "MATH202", name: "Calculus II", days: [1, 3] },
+    { time: "1 PM", course: "ENG105", name: "Technical Writing", days: [0, 2, 4] },
+  ];
+  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  return (
+    <div className="space-y-1">
+      <div className="grid grid-cols-[40px_repeat(5,1fr)] gap-px text-[8px] text-muted-foreground">
+        <div />
+        {dayLabels.map((d) => <div key={d} className="text-center font-semibold uppercase">{d}</div>)}
+      </div>
+      {slots.map((s) => (
+        <div key={s.course} className="grid grid-cols-[40px_repeat(5,1fr)] gap-px">
+          <div className="text-[8px] text-muted-foreground text-right pr-1">{s.time}</div>
+          {dayLabels.map((_, i) => (
+            <div key={i} className={`h-6 rounded text-[7px] flex items-center justify-center ${s.days.includes(i) ? "bg-accent/80 border border-border" : ""}`}>
+              {s.days.includes(i) ? s.course : ""}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const DemoAnalytics = () => {
+  const data = [
+    { label: "CS201", pct: 75 },
+    { label: "MATH202", pct: 50 },
+    { label: "ENG105", pct: 30 },
+    { label: "PHY101", pct: 60 },
+  ];
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] text-muted-foreground font-semibold uppercase">Study Hours by Course</p>
+      {data.map((d) => (
+        <div key={d.label} className="space-y-1">
+          <div className="flex justify-between text-[9px]">
+            <span>{d.label}</span>
+            <span className="text-muted-foreground">{(d.pct / 10).toFixed(1)}h</span>
+          </div>
+          <Progress value={d.pct} className="h-1.5" />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
   return (
@@ -68,6 +165,61 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
         </div>
       </section>
 
+      {/* Interactive Demo */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+          <h2 className="font-display text-3xl font-bold text-center mb-3">Try it out.</h2>
+          <p className="text-center text-muted-foreground text-sm mb-10">An interactive preview of Studo's key features.</p>
+        </motion.div>
+
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
+          className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+          {/* Mock sidebar + content */}
+          <div className="flex min-h-[400px]">
+            {/* Mini sidebar */}
+            <div className="w-44 border-r bg-muted/20 p-4 hidden md:block">
+              <p className="font-display font-bold text-sm mb-4">Studo</p>
+              <div className="space-y-1">
+                {["Dashboard", "Study Tracker", "Courses", "Schedule", "Projects", "Expenses", "Resources"].map((item) => (
+                  <div key={item} className="text-xs py-1.5 px-2 rounded-md text-muted-foreground hover:bg-accent/50 cursor-default">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Demo content grid */}
+            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="p-4">
+                <h4 className="font-display text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Pomodoro Timer</h4>
+                <DemoTimer />
+              </Card>
+
+              <Card className="p-4">
+                <h4 className="font-display text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Analytics</h4>
+                <DemoAnalytics />
+              </Card>
+
+              <Card className="p-4">
+                <h4 className="font-display text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Kanban Board</h4>
+                <DemoKanban />
+              </Card>
+
+              <Card className="p-4">
+                <h4 className="font-display text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Class Schedule</h4>
+                <DemoSchedule />
+              </Card>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="text-center mt-6">
+          <Button size="lg" onClick={onGetStarted} className="gap-2 px-8">
+            Start Using Studo <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </section>
+
       {/* Philosophy */}
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
@@ -77,45 +229,6 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
             Studo focuses on clarity, simplicity, and essential tools that students actually use.
             No cluttered dashboards, no steep learning curves — just a calm space to manage your academic life.
           </p>
-        </motion.div>
-      </section>
-
-      {/* Preview */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-          className="rounded-2xl border bg-card p-8 shadow-sm">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 rounded-xl bg-muted p-6 h-48 flex items-end">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Dashboard</p>
-                <p className="font-display font-semibold text-sm">Your academic overview at a glance</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-accent p-6 h-48 flex items-end">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Kanban</p>
-                <p className="font-display font-semibold text-sm">Drag & drop project boards</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-accent p-6 h-32 flex items-end">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Study Tracker</p>
-                <p className="font-display font-semibold text-sm">Visualize study hours</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-muted p-6 h-32 flex items-end">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Expenses</p>
-                <p className="font-display font-semibold text-sm">Track spending</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-secondary p-6 h-32 flex items-end">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Exams</p>
-                <p className="font-display font-semibold text-sm">Countdown timers</p>
-              </div>
-            </div>
-          </div>
         </motion.div>
       </section>
 

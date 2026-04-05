@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Play, Pause, RotateCcw, Save } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus } from "lucide-react";
 import DynamicSelect from "@/components/DynamicSelect";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { toast } from "sonner";
 
 const POMODORO_WORK = 25 * 60;
 const POMODORO_BREAK = 5 * 60;
@@ -16,7 +17,6 @@ const POMODORO_BREAK = 5 * 60;
 const StudyTrackerModule = () => {
   const { sessions, setSessions, courses, getCourse } = useData();
 
-  // Pomodoro state
   const [timeLeft, setTimeLeft] = useState(POMODORO_WORK);
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
@@ -57,7 +57,10 @@ const StudyTrackerModule = () => {
   };
 
   const saveSession = () => {
-    if (elapsed < 60) return; // at least 1 minute
+    if (elapsed < 60) {
+      toast.error("Study at least 1 minute before saving.");
+      return;
+    }
     const hours = parseFloat((elapsed / 3600).toFixed(2));
     const now = new Date();
     const s: StudySession = {
@@ -70,6 +73,7 @@ const StudyTrackerModule = () => {
     setSessions((ss) => [s, ...ss]);
     reset();
     setTopic("");
+    toast.success(`Session saved: ${Math.floor(elapsed / 60)}m recorded`);
   };
 
   const mins = Math.floor(timeLeft / 60);
@@ -78,13 +82,11 @@ const StudyTrackerModule = () => {
 
   const totalHours = sessions.reduce((s, ss) => s + ss.hours, 0);
 
-  // Weekly analytics: group by course
   const courseHours = courses.map((c) => ({
     name: c.code,
     hours: parseFloat(sessions.filter((s) => s.courseId === c.id).reduce((a, s) => a + s.hours, 0).toFixed(1)),
   })).filter((c) => c.hours > 0);
 
-  // Sort sessions descending
   const sortedSessions = [...sessions].sort((a, b) => {
     if (a.date !== b.date) return b.date.localeCompare(a.date);
     return parseInt(b.id.replace(/\D/g, "")) - parseInt(a.id.replace(/\D/g, ""));
@@ -135,12 +137,13 @@ const StudyTrackerModule = () => {
           <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </Button>
-          {elapsed >= 60 && (
-            <Button size="sm" onClick={saveSession} className="gap-1.5">
-              <Save className="h-3.5 w-3.5" /> Save Session
-            </Button>
-          )}
+          <Button size="sm" onClick={saveSession} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> Add Session
+          </Button>
         </div>
+        <p className="text-[10px] text-muted-foreground text-center mt-2">
+          Duration is captured automatically from the timer. Study at least 1 minute to save.
+        </p>
       </Card>
 
       {/* Analytics */}

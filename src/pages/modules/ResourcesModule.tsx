@@ -8,7 +8,7 @@ import { Plus, Trash2, ExternalLink } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import DynamicSelect from "@/components/DynamicSelect";
 
-const types = ["PDF", "Video", "Website", "Interactive", "Other"];
+const types = ["PDF", "Video", "Website", "Interactive", "Journal", "Book", "Paper", "Other"];
 
 const ResourcesModule = () => {
   const { resources, setResources, courses } = useData();
@@ -18,8 +18,9 @@ const ResourcesModule = () => {
   const fields: FieldConfig[] = [
     { key: "title", label: "Title", placeholder: "Resource title" },
     { key: "type", label: "Type", type: "select", options: types },
-    { key: "url", label: "URL", placeholder: "https://..." },
+    { key: "url", label: "URL / Link", placeholder: "https://..." },
     { key: "course", label: "Course", type: "select", options: courses.map((c) => c.name) },
+    { key: "notes", label: "Notes", type: "textarea", placeholder: "Your notes about this resource..." },
   ];
 
   const filtered = courseFilter === "all" ? resources : resources.filter((r) => r.course === courses.find((c) => c.id === courseFilter)?.name);
@@ -32,7 +33,7 @@ const ResourcesModule = () => {
   };
 
   const add = () => {
-    const r: Resource = { id: `re${Date.now()}`, title: "", type: "", url: "", course: "" };
+    const r: Resource = { id: `re${Date.now()}`, title: "", type: "", url: "", course: "", notes: "" };
     setResources((rs) => [r, ...rs]);
     setSelected(r);
   };
@@ -45,7 +46,7 @@ const ResourcesModule = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold">Resource Hub</h2>
+        <h2 className="font-display text-lg font-semibold">Resources</h2>
         <div className="flex items-center gap-2">
           <DynamicSelect
             options={["All Courses", ...courses.map((c) => c.code)]}
@@ -72,7 +73,7 @@ const ResourcesModule = () => {
               <p className="text-sm font-medium flex items-center gap-1.5">
                 {r.title || "Untitled"} <ExternalLink className="h-3 w-3 text-muted-foreground" />
               </p>
-              <p className="text-xs text-muted-foreground">{r.course}</p>
+              <p className="text-xs text-muted-foreground">{r.course}{(r as any).notes ? " · Has notes" : ""}</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">{r.type}</Badge>
