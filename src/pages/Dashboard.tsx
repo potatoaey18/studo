@@ -30,7 +30,6 @@ const Dashboard = ({ onSignOut }: { onSignOut: () => void }) => {
       case "group-projects": return <GroupProjectsModule />;
       case "class-schedule": return <ClassScheduleModule />;
       case "expenses": return <ExpensesModule />;
-      case "research": return <ResearchModule />;
       case "resources": return <ResourcesModule />;
       case "settings": return <SettingsModule />;
     }
