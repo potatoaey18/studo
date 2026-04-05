@@ -8,7 +8,7 @@ import { Plus, Trash2, ExternalLink } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import DynamicSelect from "@/components/DynamicSelect";
 
-const types = ["PDF", "Video", "Website", "Interactive", "Journal", "Book", "Paper", "Other"];
+const types = ["PDF", "Video", "Website", "Interactive", "Journal", "Book", "Paper"];
 
 const ResourcesModule = () => {
   const { resources, setResources, courses } = useData();
