@@ -7,7 +7,7 @@ import { Plus, Trash2 } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
-const categories = ["Books", "Food", "Supplies", "Transport", "Subscriptions", "Other"];
+const categories = ["Books", "Food", "Supplies", "Transport", "Subscriptions"];
 
 const COLORS = [
   "hsl(var(--foreground))",
