@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useData, Project } from "@/lib/dataContext";
 import { KanbanTask } from "@/lib/demoData";
@@ -26,6 +26,9 @@ const GroupProjectsModule = () => {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [memberEmails, setMemberEmails] = useState<string[]>([]);
+
+  // Debounce ref: holds the pending DB write timer
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
@@ -115,20 +118,26 @@ const GroupProjectsModule = () => {
             setKanbanTasks((prev) => {
               const exists = prev.some((t) => t.id === incoming.id);
               return exists
-                ? prev.map((t) => t.id === incoming.id ? incoming : t)
+                ? prev.map((t) => (t.id === incoming.id ? incoming : t))
                 : [incoming, ...prev];
             });
           }
           if (payload.eventType === "UPDATE") {
             const incoming = mapTask(payload.new);
             setKanbanTasks((prev) =>
-              prev.map((t) => t.id === incoming.id ? incoming : t)
+              prev.map((t) => (t.id === incoming.id ? incoming : t))
             );
-            setSelected((sel) => sel?.id === incoming.id ? incoming : sel);
+            // Only sync selected from remote if the user isn't actively editing it
+            // (debounceRef.current means a local write is pending — don't overwrite)
+            setSelected((sel) => {
+              if (!sel || sel.id !== incoming.id) return sel;
+              if (debounceRef.current) return sel; // local edit in flight — keep local value
+              return incoming;
+            });
           }
           if (payload.eventType === "DELETE") {
             setKanbanTasks((prev) => prev.filter((t) => t.id !== payload.old.id));
-            setSelected((sel) => sel?.id === payload.old.id ? null : sel);
+            setSelected((sel) => (sel?.id === payload.old.id ? null : sel));
           }
         }
       )
@@ -138,6 +147,13 @@ const GroupProjectsModule = () => {
       supabase.removeChannel(channel);
     };
   }, [activeProjectId]);
+
+  // Clean up any pending debounce timer when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // Permission helpers
   const canEdit = (task: KanbanTask) =>
@@ -158,7 +174,9 @@ const GroupProjectsModule = () => {
       return;
     }
 
-    setKanbanTasks((ts) => ts.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
+    setKanbanTasks((ts) =>
+      ts.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+    );
 
     const { error } = await supabase
       .from("kanban_tasks")
@@ -168,33 +186,78 @@ const GroupProjectsModule = () => {
     if (error) {
       console.error("Failed to update task status:", error);
       setKanbanTasks((ts) =>
-        ts.map((t) => t.id === taskId ? { ...t, status: result.source.droppableId as KanbanTask["status"] } : t)
+        ts.map((t) =>
+          t.id === taskId
+            ? { ...t, status: result.source.droppableId as KanbanTask["status"] }
+            : t
+        )
       );
       toast.error("Failed to move task. Please try again.");
     }
   };
 
-  const update = async (key: string, value: any) => {
+  // Update: instant UI, debounced DB write (600ms after last change)
+  const update = (key: string, value: any) => {
     if (!selected) return;
+
+    // Apply immediately so the UI feels instant
     const updated = { ...selected, [key]: value };
     setSelected(updated);
-    setKanbanTasks((ts) => ts.map((t) => t.id === updated.id ? updated : t));
+    setKanbanTasks((ts) => ts.map((t) => (t.id === updated.id ? updated : t)));
 
-    const dbKey = key === "dueDate" ? "due_date" : key;
-    const { error } = await supabase
-      .from("kanban_tasks")
-      .update({ [dbKey]: value })
-      .eq("id", updated.id);
+    // Cancel any pending DB write and schedule a fresh one
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      debounceRef.current = null;
+      const dbKey = key === "dueDate" ? "due_date" : key;
+      const { error } = await supabase
+        .from("kanban_tasks")
+        .update({ [dbKey]: value })
+        .eq("id", updated.id);
 
-    if (error) {
-      console.error("Failed to update task:", error);
-      toast.error("Failed to save changes.");
+      if (error) {
+        console.error("Failed to update task:", error);
+        toast.error("Failed to save changes.");
+      }
+    }, 600);
+  };
+
+  // Flush any pending debounce write then close the modal
+  const handleModalClose = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+
+      // Fire the write immediately on close so no changes are lost
+      if (selected) {
+        const flush = async () => {
+          const fieldsToSync: Partial<Record<string, any>> = {
+            title: selected.title,
+            description: selected.description,
+            assignee: selected.assignee,
+            due_date: selected.dueDate,
+            status: selected.status,
+          };
+          const { error } = await supabase
+            .from("kanban_tasks")
+            .update(fieldsToSync)
+            .eq("id", selected.id);
+          if (error) {
+            console.error("Failed to flush task on modal close:", error);
+            toast.error("Failed to save last changes.");
+          }
+        };
+        flush();
+      }
     }
+    setSelected(null);
   };
 
   const addTask = async () => {
     if (!activeProject) return;
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
 
     const tempTask: KanbanTask = {
@@ -244,7 +307,9 @@ const GroupProjectsModule = () => {
 
   const addProject = async () => {
     if (!newProjectName.trim()) return;
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
 
     const { data, error } = await supabase
@@ -279,7 +344,8 @@ const GroupProjectsModule = () => {
     await supabase.from("projects").delete().eq("id", id);
     if (p) setKanbanTasks((ts) => ts.filter((t) => t.project !== p.name));
     setProjects((ps) => ps.filter((pr) => pr.id !== id));
-    if (activeProjectId === id) setActiveProjectId(projects.find((pr) => pr.id !== id)?.id || "");
+    if (activeProjectId === id)
+      setActiveProjectId(projects.find((pr) => pr.id !== id)?.id || "");
   };
 
   const copyInviteLink = (code: string) => {
@@ -306,8 +372,17 @@ const GroupProjectsModule = () => {
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-semibold">Group Projects</h2>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setShowProjectPanel(!showProjectPanel)} className="gap-1.5">
-            {showProjectPanel ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowProjectPanel(!showProjectPanel)}
+            className="gap-1.5"
+          >
+            {showProjectPanel ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
             Projects ({projects.length})
           </Button>
           <Button variant="outline" size="sm" onClick={addTask} className="gap-1.5">
@@ -326,13 +401,17 @@ const GroupProjectsModule = () => {
               onKeyDown={(e) => e.key === "Enter" && addProject()}
               className="flex-1"
             />
-            <Button size="sm" onClick={addProject}>Create</Button>
+            <Button size="sm" onClick={addProject}>
+              Create
+            </Button>
           </div>
           <div className="grid gap-2">
             {projects.map((p) => (
               <div
                 key={p.id}
-                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors group ${activeProjectId === p.id ? "bg-accent" : "hover:bg-muted/50"}`}
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors group ${
+                  activeProjectId === p.id ? "bg-accent" : "hover:bg-muted/50"
+                }`}
                 onClick={() => setActiveProjectId(p.id)}
               >
                 <div>
@@ -345,16 +424,24 @@ const GroupProjectsModule = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
-                    variant="ghost" size="icon"
-                    onClick={(e) => { e.stopPropagation(); copyInviteLink(p.inviteCode); }}
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyInviteLink(p.inviteCode);
+                    }}
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     title="Copy invite link"
                   >
                     <Link className="h-3 w-3" />
                   </Button>
                   <Button
-                    variant="ghost" size="icon"
-                    onClick={(e) => { e.stopPropagation(); removeProject(p.id); }}
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeProject(p.id);
+                    }}
                     className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -368,7 +455,9 @@ const GroupProjectsModule = () => {
 
       {activeProject && (
         <div className="flex items-center gap-3 flex-wrap">
-          <Badge variant="secondary" className="text-xs">{activeProject.name}</Badge>
+          <Badge variant="secondary" className="text-xs">
+            {activeProject.name}
+          </Badge>
           <button
             onClick={() => copyInviteLink(activeProject.inviteCode)}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer"
@@ -376,7 +465,12 @@ const GroupProjectsModule = () => {
             <Link className="h-3 w-3" />
             {getInviteUrl(activeProject.inviteCode).slice(0, 50)}…
           </button>
-          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyInviteLink(activeProject.inviteCode)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            onClick={() => copyInviteLink(activeProject.inviteCode)}
+          >
             <Copy className="h-3 w-3" />
           </Button>
         </div>
@@ -392,7 +486,9 @@ const GroupProjectsModule = () => {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`rounded-xl p-3 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-accent/70" : "bg-muted/30"}`}
+                    className={`rounded-xl p-3 min-h-[120px] transition-colors ${
+                      snapshot.isDraggingOver ? "bg-accent/70" : "bg-muted/30"
+                    }`}
                   >
                     <h4 className="font-display font-semibold text-xs mb-3 text-muted-foreground uppercase tracking-wider">
                       {col.label} ({colTasks.length})
@@ -415,16 +511,26 @@ const GroupProjectsModule = () => {
                                   {task.assignee || "Unassigned"}
                                 </Badge>
                                 <div className="flex items-center gap-1">
-                                  <span className="text-[10px] text-muted-foreground">{task.dueDate}</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {task.dueDate}
+                                  </span>
                                   <Button
-                                    variant="ghost" size="icon"
-                                    onClick={(e) => { e.stopPropagation(); removeTask(task); }}
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeTask(task);
+                                    }}
                                     className={`h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ${
                                       isCreator
                                         ? "text-muted-foreground hover:text-destructive"
                                         : "text-muted-foreground/40 cursor-not-allowed"
                                     }`}
-                                    title={isCreator ? "Delete task" : "Only the creator can delete this task"}
+                                    title={
+                                      isCreator
+                                        ? "Delete task"
+                                        : "Only the creator can delete this task"
+                                    }
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -446,7 +552,7 @@ const GroupProjectsModule = () => {
 
       <ItemModal
         open={!!selected}
-        onClose={() => setSelected(null)}
+        onClose={handleModalClose}
         title="Task Details"
         item={selected}
         fields={fields}
