@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
+import { Analytics } from "@vercel/analytics/next"
 import Dashboard from "./pages/Dashboard.tsx";
 import Auth from "./pages/Auth.tsx";
 import Landing from "./pages/Landing.tsx";
@@ -76,6 +77,7 @@ const App = () => {
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
+    <Analytics />
   );
 };
 
