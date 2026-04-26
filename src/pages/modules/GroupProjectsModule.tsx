@@ -36,16 +36,24 @@ const GroupProjectsModule = () => {
 
   const getInviteUrl = (code: string) => `${window.location.origin}/invite/${code}`;
 
-  // Re-fetch all tasks for the active project by name whenever the project switches.
-  // This ensures invited members see tasks created by others, not just their own.
+  const mapTask = (t: any): KanbanTask => ({
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    assignee: t.assignee,
+    dueDate: t.due_date,
+    status: t.status,
+    project: t.project,
+  });
+
   useEffect(() => {
     if (!activeProject?.name) return;
 
+    // Initial fetch — load all tasks for this project
     const fetchProjectTasks = async () => {
       const { data, error } = await supabase
         .from("kanban_tasks")
         .select("*")
-        // Query by the existing `project` name column — no schema changes needed
         .eq("project", activeProject.name);
 
       if (error) {
@@ -54,25 +62,60 @@ const GroupProjectsModule = () => {
       }
 
       if (data) {
-        const mapped: KanbanTask[] = data.map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          description: t.description,
-          assignee: t.assignee,
-          dueDate: t.due_date,
-          status: t.status,
-          project: t.project,
-        }));
-
-        // Replace tasks for this project, keep tasks for others
         setKanbanTasks((prev) => [
           ...prev.filter((t) => t.project !== activeProject.name),
-          ...mapped,
+          ...data.map(mapTask),
         ]);
       }
     };
 
     fetchProjectTasks();
+
+    // Realtime subscription — keeps all members in sync on INSERT, UPDATE, DELETE
+    const channel = supabase
+      .channel(`kanban_tasks:project=${activeProject.name}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "kanban_tasks",
+          filter: `project=eq.${activeProject.name}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const incoming = mapTask(payload.new);
+            setKanbanTasks((prev) => {
+              // If the task was added optimistically by this user, replace it;
+              // otherwise append it (came from another member).
+              const exists = prev.some((t) => t.id === incoming.id);
+              return exists
+                ? prev.map((t) => t.id === incoming.id ? incoming : t)
+                : [incoming, ...prev];
+            });
+          }
+
+          if (payload.eventType === "UPDATE") {
+            const incoming = mapTask(payload.new);
+            setKanbanTasks((prev) =>
+              prev.map((t) => t.id === incoming.id ? incoming : t)
+            );
+            // Keep modal in sync if the updated task is currently open
+            setSelected((sel) => sel?.id === incoming.id ? incoming : sel);
+          }
+
+          if (payload.eventType === "DELETE") {
+            setKanbanTasks((prev) => prev.filter((t) => t.id !== payload.old.id));
+            setSelected((sel) => sel?.id === payload.old.id ? null : sel);
+          }
+        }
+      )
+      .subscribe();
+
+    // Unsubscribe when the active project changes or the component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeProjectId]);
 
   const onDragEnd = async (result: DropResult) => {
