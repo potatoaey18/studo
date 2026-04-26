@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Copy, Trash2, Users, ChevronDown, ChevronRight, Link } from "lucide-react";
 import ItemModal, { FieldConfig } from "@/components/dashboard/ItemModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -26,6 +36,7 @@ const GroupProjectsModule = () => {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [memberEmails, setMemberEmails] = useState<string[]>([]);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   // Debounce ref: holds the pending DB write timer
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -339,10 +350,21 @@ const GroupProjectsModule = () => {
     setNewProjectName("");
   };
 
-  const removeProject = async (id: string) => {
-    const p = projects.find((pr) => pr.id === id);
+  const requestDeleteProject = (p: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (p.ownerId !== currentUserId) {
+      toast.error("Only the project creator can delete this project.");
+      return;
+    }
+    setProjectToDelete(p);
+  };
+
+  const removeProject = async () => {
+    if (!projectToDelete) return;
+    const { id, name } = projectToDelete;
+    setProjectToDelete(null);
     await supabase.from("projects").delete().eq("id", id);
-    if (p) setKanbanTasks((ts) => ts.filter((t) => t.project !== p.name));
+    setKanbanTasks((ts) => ts.filter((t) => t.project !== name));
     setProjects((ps) => ps.filter((pr) => pr.id !== id));
     if (activeProjectId === id)
       setActiveProjectId(projects.find((pr) => pr.id !== id)?.id || "");
@@ -438,11 +460,17 @@ const GroupProjectsModule = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeProject(p.id);
-                    }}
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                    onClick={(e) => requestDeleteProject(p, e)}
+                    className={`h-7 w-7 transition-opacity ${
+                      p.ownerId === currentUserId
+                        ? "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                        : "opacity-0 group-hover:opacity-40 text-muted-foreground cursor-not-allowed"
+                    }`}
+                    title={
+                      p.ownerId === currentUserId
+                        ? "Delete project"
+                        : "Only the creator can delete this project"
+                    }
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -560,6 +588,27 @@ const GroupProjectsModule = () => {
         currentUserId={currentUserId}
         currentUserEmail={currentUserEmail}
       />
+
+      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium text-foreground">{projectToDelete?.name}</span> and all
+              of its tasks will be permanently deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={removeProject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
