@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react";
 import Dashboard from "./pages/Dashboard.tsx";
 import Auth from "./pages/Auth.tsx";
 import Landing from "./pages/Landing.tsx";
@@ -55,29 +55,31 @@ const App = () => {
   if (loading) return null;
 
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/invite/:code" element={<InvitePage />} />
-              <Route
-                path="/"
-                element={
-                  session ? <Dashboard onSignOut={handleSignOut} /> :
-                  showAuth ? <Auth onSuccess={() => setShowAuth(false)} /> :
-                  <Landing onGetStarted={() => setShowAuth(true)} />
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
-    <Analytics />
+    <>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/invite/:code" element={<InvitePage />} />
+                <Route
+                  path="/"
+                  element={
+                    session ? <Dashboard onSignOut={handleSignOut} /> :
+                    showAuth ? <Auth onSuccess={() => setShowAuth(false)} /> :
+                    <Landing onGetStarted={() => setShowAuth(true)} />
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+      <Analytics />
+    </>
   );
 };
 
