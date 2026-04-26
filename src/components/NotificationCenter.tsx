@@ -14,7 +14,7 @@ const NotificationCenter = () => {
   const enablePush = async () => {
     const granted = await requestNotificationPermission();
     if (granted) {
-      new Notification("Studo", { body: "Push notifications enabled!" });
+      new Notification("Nootzs", { body: "Push notifications enabled!" });
     }
   };
 

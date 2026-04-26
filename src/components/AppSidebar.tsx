@@ -53,7 +53,7 @@ export function AppSidebar({ activeSection, onSectionClick }: AppSidebarProps) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="font-display tracking-tight">
-            {!collapsed && "Studo"}
+            {!collapsed && "Nootzs"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

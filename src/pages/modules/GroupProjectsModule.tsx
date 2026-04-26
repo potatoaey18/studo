@@ -32,24 +32,21 @@ const GroupProjectsModule = () => {
   const [newProjectName, setNewProjectName] = useState("");
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
-
-  // Filter by name sourced from the active project object (looked up by ID — safe)
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
 
   const getInviteUrl = (code: string) => `${window.location.origin}/invite/${code}`;
 
-  // Re-fetch tasks by project_id whenever the active project changes so all
-  // members see tasks created by others, not just their own.
+  // Re-fetch all tasks for the active project by name whenever the project switches.
+  // This ensures invited members see tasks created by others, not just their own.
   useEffect(() => {
-    if (!activeProjectId) return;
+    if (!activeProject?.name) return;
 
     const fetchProjectTasks = async () => {
       const { data, error } = await supabase
         .from("kanban_tasks")
         .select("*")
-        // Query by project_id (DB column) so all members' tasks are returned,
-        // not just those belonging to the currently logged-in user.
-        .eq("project_id", activeProjectId);
+        // Query by the existing `project` name column — no schema changes needed
+        .eq("project", activeProject.name);
 
       if (error) {
         console.error("Failed to fetch project tasks:", error);
@@ -57,7 +54,6 @@ const GroupProjectsModule = () => {
       }
 
       if (data) {
-        // Map snake_case DB columns back to camelCase for the app
         const mapped: KanbanTask[] = data.map((t: any) => ({
           id: t.id,
           title: t.title,
@@ -68,9 +64,9 @@ const GroupProjectsModule = () => {
           project: t.project,
         }));
 
-        // Merge: keep tasks from other projects, replace tasks for this project
+        // Replace tasks for this project, keep tasks for others
         setKanbanTasks((prev) => [
-          ...prev.filter((t) => t.project !== activeProject?.name),
+          ...prev.filter((t) => t.project !== activeProject.name),
           ...mapped,
         ]);
       }
@@ -93,8 +89,8 @@ const GroupProjectsModule = () => {
       .eq("id", taskId);
 
     if (error) {
-      // Rollback on failure
       console.error("Failed to update task status:", error);
+      // Rollback
       setKanbanTasks((ts) =>
         ts.map((t) => t.id === taskId ? { ...t, status: result.source.droppableId as KanbanTask["status"] } : t)
       );
@@ -145,8 +141,6 @@ const GroupProjectsModule = () => {
       due_date: "",
       status: "todo",
       project: activeProject.name,
-      // project_id lives in the DB only — no TS type change required
-      project_id: activeProject.id,
       user_id: session.user.id,
     });
 
@@ -202,7 +196,6 @@ const GroupProjectsModule = () => {
   const removeProject = async (id: string) => {
     const p = projects.find((pr) => pr.id === id);
     await supabase.from("projects").delete().eq("id", id);
-    // Filter by name — no type change needed
     if (p) setKanbanTasks((ts) => ts.filter((t) => t.project !== p.name));
     setProjects((ps) => ps.filter((pr) => pr.id !== id));
     if (activeProjectId === id) setActiveProjectId(projects.find((pr) => pr.id !== id)?.id || "");
