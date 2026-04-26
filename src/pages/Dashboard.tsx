@@ -46,7 +46,7 @@ const Dashboard = ({ onSignOut }: { onSignOut: () => void }) => {
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger />
-                  <h1 className="font-display text-lg font-bold tracking-tight">Studo</h1>
+                  <h1 className="font-display text-lg font-bold tracking-tight">Nootzs</h1>
                 </div>
                 <div className="flex items-center gap-1">
                   <NotificationCenter />

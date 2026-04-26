@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useData, Project } from "@/lib/dataContext";
 import { KanbanTask } from "@/lib/demoData";
@@ -32,9 +32,52 @@ const GroupProjectsModule = () => {
   const [newProjectName, setNewProjectName] = useState("");
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
+
+  // Filter by name sourced from the active project object (looked up by ID — safe)
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
 
   const getInviteUrl = (code: string) => `${window.location.origin}/invite/${code}`;
+
+  // Re-fetch tasks by project_id whenever the active project changes so all
+  // members see tasks created by others, not just their own.
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    const fetchProjectTasks = async () => {
+      const { data, error } = await supabase
+        .from("kanban_tasks")
+        .select("*")
+        // Query by project_id (DB column) so all members' tasks are returned,
+        // not just those belonging to the currently logged-in user.
+        .eq("project_id", activeProjectId);
+
+      if (error) {
+        console.error("Failed to fetch project tasks:", error);
+        return;
+      }
+
+      if (data) {
+        // Map snake_case DB columns back to camelCase for the app
+        const mapped: KanbanTask[] = data.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          assignee: t.assignee,
+          dueDate: t.due_date,
+          status: t.status,
+          project: t.project,
+        }));
+
+        // Merge: keep tasks from other projects, replace tasks for this project
+        setKanbanTasks((prev) => [
+          ...prev.filter((t) => t.project !== activeProject?.name),
+          ...mapped,
+        ]);
+      }
+    };
+
+    fetchProjectTasks();
+  }, [activeProjectId]);
 
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -44,8 +87,19 @@ const GroupProjectsModule = () => {
     // Optimistic update
     setKanbanTasks((ts) => ts.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
 
-    // Persist to Supabase
-    await supabase.from("kanban_tasks").update({ status: newStatus }).eq("id", taskId);
+    const { error } = await supabase
+      .from("kanban_tasks")
+      .update({ status: newStatus })
+      .eq("id", taskId);
+
+    if (error) {
+      // Rollback on failure
+      console.error("Failed to update task status:", error);
+      setKanbanTasks((ts) =>
+        ts.map((t) => t.id === taskId ? { ...t, status: result.source.droppableId as KanbanTask["status"] } : t)
+      );
+      toast.error("Failed to move task. Please try again.");
+    }
   };
 
   const update = async (key: string, value: any) => {
@@ -54,9 +108,16 @@ const GroupProjectsModule = () => {
     setSelected(updated);
     setKanbanTasks((ts) => ts.map((t) => t.id === updated.id ? updated : t));
 
-    // Map camelCase to snake_case for Supabase
     const dbKey = key === "dueDate" ? "due_date" : key;
-    await supabase.from("kanban_tasks").update({ [dbKey]: value }).eq("id", updated.id);
+    const { error } = await supabase
+      .from("kanban_tasks")
+      .update({ [dbKey]: value })
+      .eq("id", updated.id);
+
+    if (error) {
+      console.error("Failed to update task:", error);
+      toast.error("Failed to save changes.");
+    }
   };
 
   const addTask = async () => {
@@ -64,7 +125,6 @@ const GroupProjectsModule = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // Create task locally first so modal opens immediately
     const tempTask: KanbanTask = {
       id: `k${Date.now()}`,
       title: "",
@@ -77,8 +137,7 @@ const GroupProjectsModule = () => {
     setKanbanTasks((ts) => [tempTask, ...ts]);
     setSelected(tempTask);
 
-    // Then persist to Supabase in background
-    const { data, error } = await supabase.from("kanban_tasks").insert({
+    const { error } = await supabase.from("kanban_tasks").insert({
       id: tempTask.id,
       title: "",
       description: "",
@@ -86,20 +145,26 @@ const GroupProjectsModule = () => {
       due_date: "",
       status: "todo",
       project: activeProject.name,
+      // project_id lives in the DB only — no TS type change required
+      project_id: activeProject.id,
       user_id: session.user.id,
-    }).select().single();
+    });
 
     if (error) {
       console.error("Failed to save task:", error);
-      // Rollback if failed
       setKanbanTasks((ts) => ts.filter((t) => t.id !== tempTask.id));
       setSelected(null);
+      toast.error("Failed to create task.");
     }
   };
-  
+
   const removeTask = async (id: string) => {
     setKanbanTasks((ts) => ts.filter((t) => t.id !== id));
-    await supabase.from("kanban_tasks").delete().eq("id", id);
+    const { error } = await supabase.from("kanban_tasks").delete().eq("id", id);
+    if (error) {
+      console.error("Failed to delete task:", error);
+      toast.error("Failed to delete task.");
+    }
   };
 
   const addProject = async () => {
@@ -135,8 +200,9 @@ const GroupProjectsModule = () => {
   };
 
   const removeProject = async (id: string) => {
-    await supabase.from("projects").delete().eq("id", id);
     const p = projects.find((pr) => pr.id === id);
+    await supabase.from("projects").delete().eq("id", id);
+    // Filter by name — no type change needed
     if (p) setKanbanTasks((ts) => ts.filter((t) => t.project !== p.name));
     setProjects((ps) => ps.filter((pr) => pr.id !== id));
     if (activeProjectId === id) setActiveProjectId(projects.find((pr) => pr.id !== id)?.id || "");

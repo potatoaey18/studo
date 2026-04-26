@@ -61,7 +61,7 @@ const InvitePage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pt-8">
-          <h1 className="font-display text-3xl font-bold">Studo</h1>
+          <h1 className="font-display text-3xl font-bold">Nootzs</h1>
           <p className="text-muted-foreground text-sm mt-1">Project Invitation</p>
         </CardHeader>
         <CardContent className="px-8 pb-8 space-y-6 text-center">

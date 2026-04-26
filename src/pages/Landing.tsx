@@ -256,7 +256,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <h1 className="font-display text-xl font-bold tracking-tight">Studo</h1>
+        <h1 className="font-display text-xl font-bold tracking-tight">Nootzs</h1>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button variant="outline" size="sm" onClick={onGetStarted}>Sign In</Button>
@@ -289,7 +289,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
           <h2 className="font-display text-3xl font-bold mb-6">Built for clarity.</h2>
           <p className="text-muted-foreground leading-relaxed">
             Unlike many productivity platforms that overwhelm students with complex features,
-            Studo focuses on clarity, simplicity, and essential tools that students actually use.
+            Nootzs focuses on clarity, simplicity, and essential tools that students actually use.
             No cluttered dashboards, no steep learning curves — just a calm space to manage your academic life.
           </p>
         </motion.div>
@@ -324,7 +324,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
           <div className="flex min-h-[300px]">
             {/* Mini sidebar */}
             <div className="w-44 border-r bg-muted/20 p-4 hidden md:block">
-              <p className="font-display font-bold text-sm mb-4">Studo</p>
+              <p className="font-display font-bold text-sm mb-4">Nootzs</p>
               <div className="space-y-0.5">
                 {demoTabs.map((tab) => (
                   <button key={tab}
@@ -358,7 +358,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
         <div className="text-center mt-6">
           <Button size="lg" onClick={onGetStarted} className="gap-2 px-8">
-            Start Using Studo <ArrowRight className="h-4 w-4" />
+            Start Using Nootzs <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </section>
@@ -367,8 +367,8 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
       {/* Footer */}
       <footer className="border-t mt-12">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="font-display font-bold text-sm">Studo</p>
-          <p className="text-xs text-muted-foreground">© 2026 Studo. Simple productivity for students.</p>
+          <p className="font-display font-bold text-sm">Nootzs</p>
+          <p className="text-xs text-muted-foreground">© 2026 Nootzs. Simple productivity for students.</p>
           <div className="flex gap-4 text-xs text-muted-foreground">
             <span className="cursor-pointer hover:text-foreground transition-colors">Features</span>
             <span className="cursor-pointer hover:text-foreground transition-colors">About</span>

@@ -43,7 +43,7 @@ const Auth = ({ onSuccess }: { onSuccess: () => void }) => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4 sm:p-6">
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1 text-center px-6 sm:px-8 pt-6 sm:pt-8">
-          <h1 className="font-display text-3xl font-bold tracking-tight">Studo</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Nootzs</h1>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your workspace" : "Create your account"}
           </p>
