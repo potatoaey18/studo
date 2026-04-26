@@ -17,13 +17,6 @@ const columns: { id: KanbanTask["status"]; label: string }[] = [
   { id: "completed", label: "Completed" },
 ];
 
-const fields: FieldConfig[] = [
-  { key: "title", label: "Title", placeholder: "Task title" },
-  { key: "description", label: "Description", type: "textarea", placeholder: "Details..." },
-  { key: "assignee", label: "Assignee", placeholder: "Name" },
-  { key: "dueDate", label: "Due Date", type: "date" },
-];
-
 const GroupProjectsModule = () => {
   const { kanbanTasks, setKanbanTasks, projects, setProjects } = useData();
   const [selected, setSelected] = useState<KanbanTask | null>(null);
@@ -31,6 +24,8 @@ const GroupProjectsModule = () => {
   const [showProjectPanel, setShowProjectPanel] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [memberEmails, setMemberEmails] = useState<string[]>([]);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
@@ -48,13 +43,38 @@ const GroupProjectsModule = () => {
     user_id: t.user_id,
   });
 
-  // Fetch the current user's ID once on mount
+  // Fetch current user once on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) setCurrentUserId(session.user.id);
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+        setCurrentUserEmail(session.user.email ?? "");
+      }
     });
   }, []);
 
+  // Fetch project members whenever the active project changes
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    const fetchMembers = async () => {
+      const { data, error } = await supabase
+        .from("project_members")
+        .select("email")
+        .eq("project_id", activeProjectId);
+
+      if (error) {
+        console.error("Failed to fetch project members:", error);
+        return;
+      }
+
+      setMemberEmails(data?.map((m) => m.email).filter(Boolean) ?? []);
+    };
+
+    fetchMembers();
+  }, [activeProjectId]);
+
+  // Fetch tasks + subscribe to realtime changes
   useEffect(() => {
     if (!activeProject?.name) return;
 
@@ -99,7 +119,6 @@ const GroupProjectsModule = () => {
                 : [incoming, ...prev];
             });
           }
-
           if (payload.eventType === "UPDATE") {
             const incoming = mapTask(payload.new);
             setKanbanTasks((prev) =>
@@ -107,7 +126,6 @@ const GroupProjectsModule = () => {
             );
             setSelected((sel) => sel?.id === incoming.id ? incoming : sel);
           }
-
           if (payload.eventType === "DELETE") {
             setKanbanTasks((prev) => prev.filter((t) => t.id !== payload.old.id));
             setSelected((sel) => sel?.id === payload.old.id ? null : sel);
@@ -121,10 +139,24 @@ const GroupProjectsModule = () => {
     };
   }, [activeProjectId]);
 
+  // Permission helpers
+  const canEdit = (task: KanbanTask) =>
+    task.user_id === currentUserId ||
+    !task.assignee ||
+    task.assignee === currentUserEmail;
+
+  const canDelete = (task: KanbanTask) => task.user_id === currentUserId;
+
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
     const newStatus = result.destination.droppableId as KanbanTask["status"];
     const taskId = result.draggableId;
+    const task = kanbanTasks.find((t) => t.id === taskId);
+
+    if (task && !canEdit(task)) {
+      toast.warning("Only the assignee or creator can move this task.");
+      return;
+    }
 
     setKanbanTasks((ts) => ts.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
 
@@ -198,8 +230,7 @@ const GroupProjectsModule = () => {
   };
 
   const removeTask = async (task: KanbanTask) => {
-    // Guard: only the creator can delete
-    if (task.user_id !== currentUserId) {
+    if (!canDelete(task)) {
       toast.warning("Only the task creator can delete this task.");
       return;
     }
@@ -255,6 +286,20 @@ const GroupProjectsModule = () => {
     navigator.clipboard.writeText(getInviteUrl(code));
     toast.success("Invite link copied to clipboard!");
   };
+
+  // Build fields dynamically so assignee dropdown reflects current project members
+  const fields: FieldConfig[] = [
+    { key: "title", label: "Title", placeholder: "Task title" },
+    { key: "description", label: "Description", type: "textarea", placeholder: "Details..." },
+    {
+      key: "assignee",
+      label: "Assignee",
+      type: "select",
+      options: memberEmails,
+      placeholder: "Select a member",
+    },
+    { key: "dueDate", label: "Due Date", type: "date" },
+  ];
 
   return (
     <div className="space-y-4">
@@ -353,7 +398,7 @@ const GroupProjectsModule = () => {
                       {col.label} ({colTasks.length})
                     </h4>
                     {colTasks.map((task, index) => {
-                      const isOwner = task.user_id === currentUserId;
+                      const isCreator = task.user_id === currentUserId;
                       return (
                         <Draggable key={task.id} draggableId={task.id} index={index}>
                           {(provided) => (
@@ -366,18 +411,20 @@ const GroupProjectsModule = () => {
                             >
                               <p className="text-sm font-medium">{task.title || "Untitled"}</p>
                               <div className="flex items-center justify-between mt-2">
-                                <Badge variant="secondary" className="text-[10px]">{task.assignee || "Unassigned"}</Badge>
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {task.assignee || "Unassigned"}
+                                </Badge>
                                 <div className="flex items-center gap-1">
                                   <span className="text-[10px] text-muted-foreground">{task.dueDate}</span>
                                   <Button
                                     variant="ghost" size="icon"
                                     onClick={(e) => { e.stopPropagation(); removeTask(task); }}
                                     className={`h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ${
-                                      isOwner
+                                      isCreator
                                         ? "text-muted-foreground hover:text-destructive"
                                         : "text-muted-foreground/40 cursor-not-allowed"
                                     }`}
-                                    title={isOwner ? "Delete task" : "Only the creator can delete this task"}
+                                    title={isCreator ? "Delete task" : "Only the creator can delete this task"}
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -405,6 +452,7 @@ const GroupProjectsModule = () => {
         fields={fields}
         onUpdate={update}
         currentUserId={currentUserId}
+        currentUserEmail={currentUserEmail}
       />
     </div>
   );
