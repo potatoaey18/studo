@@ -30,6 +30,7 @@ const GroupProjectsModule = () => {
   const [activeProjectId, setActiveProjectId] = useState<string>(projects[0]?.id || "");
   const [showProjectPanel, setShowProjectPanel] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectTasks = kanbanTasks.filter((t) => t.project === activeProject?.name);
@@ -44,12 +45,19 @@ const GroupProjectsModule = () => {
     dueDate: t.due_date,
     status: t.status,
     project: t.project,
+    user_id: t.user_id,
   });
+
+  // Fetch the current user's ID once on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) setCurrentUserId(session.user.id);
+    });
+  }, []);
 
   useEffect(() => {
     if (!activeProject?.name) return;
 
-    // Initial fetch — load all tasks for this project
     const fetchProjectTasks = async () => {
       const { data, error } = await supabase
         .from("kanban_tasks")
@@ -71,7 +79,6 @@ const GroupProjectsModule = () => {
 
     fetchProjectTasks();
 
-    // Realtime subscription — keeps all members in sync on INSERT, UPDATE, DELETE
     const channel = supabase
       .channel(`kanban_tasks:project=${activeProject.name}`)
       .on(
@@ -86,8 +93,6 @@ const GroupProjectsModule = () => {
           if (payload.eventType === "INSERT") {
             const incoming = mapTask(payload.new);
             setKanbanTasks((prev) => {
-              // If the task was added optimistically by this user, replace it;
-              // otherwise append it (came from another member).
               const exists = prev.some((t) => t.id === incoming.id);
               return exists
                 ? prev.map((t) => t.id === incoming.id ? incoming : t)
@@ -100,7 +105,6 @@ const GroupProjectsModule = () => {
             setKanbanTasks((prev) =>
               prev.map((t) => t.id === incoming.id ? incoming : t)
             );
-            // Keep modal in sync if the updated task is currently open
             setSelected((sel) => sel?.id === incoming.id ? incoming : sel);
           }
 
@@ -112,7 +116,6 @@ const GroupProjectsModule = () => {
       )
       .subscribe();
 
-    // Unsubscribe when the active project changes or the component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
@@ -123,7 +126,6 @@ const GroupProjectsModule = () => {
     const newStatus = result.destination.droppableId as KanbanTask["status"];
     const taskId = result.draggableId;
 
-    // Optimistic update
     setKanbanTasks((ts) => ts.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
 
     const { error } = await supabase
@@ -133,7 +135,6 @@ const GroupProjectsModule = () => {
 
     if (error) {
       console.error("Failed to update task status:", error);
-      // Rollback
       setKanbanTasks((ts) =>
         ts.map((t) => t.id === taskId ? { ...t, status: result.source.droppableId as KanbanTask["status"] } : t)
       );
@@ -172,6 +173,7 @@ const GroupProjectsModule = () => {
       dueDate: "",
       status: "todo",
       project: activeProject.name,
+      user_id: session.user.id,
     };
     setKanbanTasks((ts) => [tempTask, ...ts]);
     setSelected(tempTask);
@@ -195,9 +197,14 @@ const GroupProjectsModule = () => {
     }
   };
 
-  const removeTask = async (id: string) => {
-    setKanbanTasks((ts) => ts.filter((t) => t.id !== id));
-    const { error } = await supabase.from("kanban_tasks").delete().eq("id", id);
+  const removeTask = async (task: KanbanTask) => {
+    // Guard: only the creator can delete
+    if (task.user_id !== currentUserId) {
+      toast.warning("Only the task creator can delete this task.");
+      return;
+    }
+    setKanbanTasks((ts) => ts.filter((t) => t.id !== task.id));
+    const { error } = await supabase.from("kanban_tasks").delete().eq("id", task.id);
     if (error) {
       console.error("Failed to delete task:", error);
       toast.error("Failed to delete task.");
@@ -345,34 +352,42 @@ const GroupProjectsModule = () => {
                     <h4 className="font-display font-semibold text-xs mb-3 text-muted-foreground uppercase tracking-wider">
                       {col.label} ({colTasks.length})
                     </h4>
-                    {colTasks.map((task, index) => (
-                      <Draggable key={task.id} draggableId={task.id} index={index}>
-                        {(provided) => (
-                          <Card
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="p-3 mb-2 cursor-grab active:cursor-grabbing hover:ring-1 hover:ring-ring/20 transition-shadow group"
-                            onClick={() => setSelected(task)}
-                          >
-                            <p className="text-sm font-medium">{task.title || "Untitled"}</p>
-                            <div className="flex items-center justify-between mt-2">
-                              <Badge variant="secondary" className="text-[10px]">{task.assignee || "Unassigned"}</Badge>
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] text-muted-foreground">{task.dueDate}</span>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  onClick={(e) => { e.stopPropagation(); removeTask(task.id); }}
-                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
+                    {colTasks.map((task, index) => {
+                      const isOwner = task.user_id === currentUserId;
+                      return (
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(provided) => (
+                            <Card
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className="p-3 mb-2 cursor-grab active:cursor-grabbing hover:ring-1 hover:ring-ring/20 transition-shadow group"
+                              onClick={() => setSelected(task)}
+                            >
+                              <p className="text-sm font-medium">{task.title || "Untitled"}</p>
+                              <div className="flex items-center justify-between mt-2">
+                                <Badge variant="secondary" className="text-[10px]">{task.assignee || "Unassigned"}</Badge>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-muted-foreground">{task.dueDate}</span>
+                                  <Button
+                                    variant="ghost" size="icon"
+                                    onClick={(e) => { e.stopPropagation(); removeTask(task); }}
+                                    className={`h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ${
+                                      isOwner
+                                        ? "text-muted-foreground hover:text-destructive"
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                    }`}
+                                    title={isOwner ? "Delete task" : "Only the creator can delete this task"}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          </Card>
-                        )}
-                      </Draggable>
-                    ))}
+                            </Card>
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
@@ -382,7 +397,15 @@ const GroupProjectsModule = () => {
         </div>
       </DragDropContext>
 
-      <ItemModal open={!!selected} onClose={() => setSelected(null)} title="Task Details" item={selected} fields={fields} onUpdate={update} />
+      <ItemModal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title="Task Details"
+        item={selected}
+        fields={fields}
+        onUpdate={update}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 };

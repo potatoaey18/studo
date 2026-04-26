@@ -41,6 +41,7 @@ export interface KanbanTask {
   dueDate: string;
   status: "todo" | "in-progress" | "completed";
   project: string;
+  user_id: string;
 }
 
 export interface Expense {
@@ -102,12 +103,30 @@ export const demoStudySessions: StudySession[] = [
 ];
 
 export const demoKanbanTasks: KanbanTask[] = [
-  { id: "k1", title: "Design wireframes", description: "Create low-fidelity wireframes for the app", assignee: "Alex", dueDate: "2026-04-08", status: "completed", project: "Mobile App" },
-  { id: "k2", title: "Set up database schema", description: "Design and implement the database tables", assignee: "Jordan", dueDate: "2026-04-10", status: "in-progress", project: "Mobile App" },
-  { id: "k3", title: "Implement auth flow", description: "Add login and registration screens", assignee: "Sam", dueDate: "2026-04-12", status: "todo", project: "Mobile App" },
-  { id: "k4", title: "Write API endpoints", description: "Create REST endpoints for CRUD operations", assignee: "Alex", dueDate: "2026-04-14", status: "todo", project: "Mobile App" },
-  { id: "k5", title: "Literature review", description: "Review 10 related papers", assignee: "Jordan", dueDate: "2026-04-09", status: "in-progress", project: "Research Project" },
-  { id: "k6", title: "Data collection", description: "Gather survey responses from participants", assignee: "Sam", dueDate: "2026-04-16", status: "todo", project: "Research Project" },
+  {
+    id: "k1", title: "Design wireframes", description: "Create low-fidelity wireframes for the app", assignee: "Alex", dueDate: "2026-04-08", status: "completed", project: "Mobile App",
+    user_id: "ab92f865-38d7-44a7-9029-42054f9fac03"
+  },
+  {
+    id: "k2", title: "Set up database schema", description: "Design and implement the database tables", assignee: "Jordan", dueDate: "2026-04-10", status: "in-progress", project: "Mobile App",
+    user_id: "ab92f865-38d7-44a7-9029-42054f9fac03"
+  },
+  {
+    id: "k3", title: "Implement auth flow", description: "Add login and registration screens", assignee: "Sam", dueDate: "2026-04-12", status: "todo", project: "Mobile App",
+    user_id: "ab92f865-38d7-44a7-9029-42054f9fac03"
+  },
+  {
+    id: "k4", title: "Write API endpoints", description: "Create REST endpoints for CRUD operations", assignee: "Alex", dueDate: "2026-04-14", status: "todo", project: "Mobile App",
+    user_id: "ab92f865-38d7-44a7-9029-42054f9fac03"
+  },
+  {
+    id: "k5", title: "Literature review", description: "Review 10 related papers", assignee: "Jordan", dueDate: "2026-04-09", status: "in-progress", project: "Research Project",
+    user_id: "ab92f865-38d7-44a7-9029-42054f9fac03"
+  },
+  {
+    id: "k6", title: "Data collection", description: "Gather survey responses from participants", assignee: "Sam", dueDate: "2026-04-16", status: "todo", project: "Research Project",
+    user_id: ""
+  },
 ];
 
 export const demoExpenses: Expense[] = [
