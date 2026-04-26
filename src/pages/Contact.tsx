@@ -23,7 +23,7 @@ const faqs = [
     a: "Absolutely. The roadmap is driven entirely by what students find useful. Use the contact form and tell us what you need.",
   },
   {
-    q: "Will you add [feature X]?",
+    q: "Will you add more features?",
     a: "Maybe! Features get added based on how many students actually need them, and removed when they stop being useful. Nothing is permanent.",
   },
   {
@@ -107,6 +107,41 @@ const Contact = ({ onBack }: { onBack: () => void }) => {
             <div>
               <p className="text-xs font-medium">Email</p>
               <p className="text-xs text-muted-foreground">agathamayesguerra@gmail.com</p>
+            </div>
+          </a>
+
+          <a href="https://www.facebook.com/aey.emesguerra/"
+            className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors group"
+          >
+        <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors fill-current"
+            >
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+        </svg>     
+            <div>   
+              <p className="text-xs font-medium">Facebook</p>
+              <p className="text-xs text-muted-foreground">Agatha May Esguerra</p>
+            </div>
+          </a>
+
+        <a href="https://www.instagram.com/potato_aey/"
+            className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors group"
+          >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors fill-none stroke-current"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            >
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+        </svg>
+            <div>   
+              <p className="text-xs font-medium">Instagram</p>
+              <p className="text-xs text-muted-foreground">potato_aey</p>
             </div>
           </a>
 
@@ -239,9 +274,9 @@ const Contact = ({ onBack }: { onBack: () => void }) => {
           <p className="font-display font-bold text-sm">Nootzs</p>
           <p className="text-xs text-muted-foreground">© 2026 Nootzs. Simple productivity for students.</p>
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <span className="cursor-pointer hover:text-foreground transition-colors">Features</span>
-            <span className="cursor-pointer hover:text-foreground transition-colors">About</span>
-            <span className="cursor-pointer hover:text-foreground transition-colors">Contact</span>
+            <a href="/" className="cursor-pointer hover:text-foreground transition-colors">Features</a>
+            <a href="/about" className="cursor-pointer hover:text-foreground transition-colors">About</a>
+            <a href="/contact" className="cursor-pointer hover:text-foreground transition-colors">Contact</a>
           </div>
         </div>
       </footer>

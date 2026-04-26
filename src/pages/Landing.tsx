@@ -204,7 +204,6 @@ const DemoAnalytics = () => {
   );
 };
 
-
 // ── Demo Tab Navigation ──
 
 const demoTabs = ["Dashboard", "Study Tracker", "Kanban", "Schedule"] as const;
@@ -249,7 +248,13 @@ const DemoContent = ({ tab }: { tab: DemoTab }) => {
   }
 };
 
-const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
+// ── Landing ──
+
+const Landing = ({ onGetStarted, onAbout, onContact }: {
+  onGetStarted: () => void;
+  onAbout: () => void;
+  onContact: () => void;
+}) => {
   const [activeTab, setActiveTab] = useState<DemoTab>("Dashboard");
 
   return (
@@ -363,17 +368,16 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
         </div>
       </section>
 
-
       {/* Footer */}
       <footer className="border-t mt-12">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="font-display font-bold text-sm">Nootzs</p>
           <p className="text-xs text-muted-foreground">© 2026 Nootzs. Simple productivity for students.</p>
-          {/* <div className="flex gap-4 text-xs text-muted-foreground">
+          <div className="flex gap-4 text-xs text-muted-foreground">
             <span className="cursor-pointer hover:text-foreground transition-colors">Features</span>
-            <span className="cursor-pointer hover:text-foreground transition-colors">About</span>
-            <span className="cursor-pointer hover:text-foreground transition-colors">Contact</span>
-          </div> */}
+            <span className="cursor-pointer hover:text-foreground transition-colors" onClick={onAbout}>About</span>
+            <span className="cursor-pointer hover:text-foreground transition-colors" onClick={onContact}>Contact</span>
+          </div>
         </div>
       </footer>
     </div>

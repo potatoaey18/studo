@@ -37,8 +37,7 @@ const roadmap = [
   { status: "live", label: "Analytics" },
   { status: "live", label: "Expense Tracker" },
   { status: "live", label: "Resource Library" },
-  { status: "planned", label: "Mobile App" },
-  { status: "planned", label: "Calendar Integration" },
+  { status: "planned", label: "Flashcards" },
   { status: "feedback", label: "Features based on your input →" },
 ];
 
@@ -92,8 +91,8 @@ const About = ({ onBack }: { onBack: () => void }) => {
             The goal isn't to be the most powerful productivity tool. It's to be the most <em>useful</em> one for students.
           </p>
           <div className="pt-4 border-t">
-            <p className="text-sm font-semibold font-display">Agatha Esguerra</p>
-            <p className="text-xs text-muted-foreground">Founder, Nootzs</p>
+            <p className="text-sm font-semibold font-display">Agatha May Esguerra</p>
+            <p className="text-xs text-muted-foreground">Creator, Nootzs</p>
           </div>
         </motion.div>
       </section>
@@ -158,19 +157,19 @@ const About = ({ onBack }: { onBack: () => void }) => {
           ))}
         </motion.div>
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Have an idea? <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors" onClick={onBack}>Let us know →</span>
+          Have an idea? <a href="/contact" className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">Let us know →</a>
         </p>
       </section>
 
       {/* Footer */}
       <footer className="border-t mt-12">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="font-display font-bold text-sm">Nootzs</p>
+          <a href="/" className="font-display font-bold text-sm hover:text-foreground transition-colors">Nootzs</a>
           <p className="text-xs text-muted-foreground">© 2026 Nootzs. Simple productivity for students.</p>
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <span className="cursor-pointer hover:text-foreground transition-colors">Features</span>
-            <span className="cursor-pointer hover:text-foreground transition-colors">About</span>
-            <span className="cursor-pointer hover:text-foreground transition-colors">Contact</span>
+            <a href="/" className="cursor-pointer hover:text-foreground transition-colors">Features</a>
+            <a href="/about" className="cursor-pointer hover:text-foreground transition-colors">About</a>
+            <a href="/contact" className="cursor-pointer hover:text-foreground transition-colors">Contact</a>
           </div>
         </div>
       </footer>

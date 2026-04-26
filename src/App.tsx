@@ -10,6 +10,8 @@ import { Analytics } from "@vercel/analytics/react";
 import Dashboard from "./pages/Dashboard.tsx";
 import Auth from "./pages/Auth.tsx";
 import Landing from "./pages/Landing.tsx";
+import About from "./pages/About.tsx";
+import Contact from "./pages/Contact.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import InvitePage from "./pages/InvitePage.tsx";
 
@@ -64,12 +66,18 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/invite/:code" element={<InvitePage />} />
+                <Route path="/about" element={<About onBack={() => window.history.back()} />} />
+                <Route path="/contact" element={<Contact onBack={() => window.history.back()} />} />
                 <Route
                   path="/"
                   element={
                     session ? <Dashboard onSignOut={handleSignOut} /> :
                     showAuth ? <Auth onSuccess={() => setShowAuth(false)} /> :
-                    <Landing onGetStarted={() => setShowAuth(true)} />
+                    <Landing
+                      onGetStarted={() => setShowAuth(true)}
+                      onAbout={() => window.location.href = "/about"}
+                      onContact={() => window.location.href = "/contact"}
+                    />
                   }
                 />
                 <Route path="*" element={<NotFound />} />
