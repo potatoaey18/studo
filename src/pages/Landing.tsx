@@ -369,11 +369,11 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="font-display font-bold text-sm">Nootzs</p>
           <p className="text-xs text-muted-foreground">© 2026 Nootzs. Simple productivity for students.</p>
-          <div className="flex gap-4 text-xs text-muted-foreground">
+          {/* <div className="flex gap-4 text-xs text-muted-foreground">
             <span className="cursor-pointer hover:text-foreground transition-colors">Features</span>
             <span className="cursor-pointer hover:text-foreground transition-colors">About</span>
             <span className="cursor-pointer hover:text-foreground transition-colors">Contact</span>
-          </div>
+          </div> */}
         </div>
       </footer>
     </div>
